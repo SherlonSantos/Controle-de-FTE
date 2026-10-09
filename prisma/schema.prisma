@@ -1,0 +1,343 @@
+// This is your Prisma schema file
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  name        String   @unique // Admin, CCO, Gestor, Consulta
+  permissions String? // Store specific permissions (JSON stringified for sqlite)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  importHistories ImportHistory[]
+  planRecords     PlanRecord[]
+  comments        Comment[]
+  logs            Log[]
+
+  governanceRequests    GovernanceRecord[]    @relation("GovernanceRequester")
+  governanceApprovals   GovernanceRecord[]    @relation("GovernanceApprover")
+  governanceJustified   GovernanceRecord[]    @relation("GovernanceJustifier")
+  governanceEvidences   GovernanceEvidence[]
+  forecastImportBatches ForecastImportBatch[]
+}
+
+model Contract {
+  id                 String      @id @default(uuid())
+  name               String      @unique
+  description        String?
+  operations         Operation[]
+  demobilizationDate DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  governanceRecords GovernanceRecord[]
+}
+
+model Operation {
+  id          String       @id @default(uuid())
+  name        String
+  contractId  String
+  contract    Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  costCenters CostCenter[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([name, contractId])
+}
+
+model CostCenter {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  description  String?
+  operationId  String
+  operation    Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  managerName  String?
+  contractType String?
+  type         String?
+
+  activeLists      ActiveList[]
+  planRecords      PlanRecord[]
+  financialRecords FinancialRecord[]
+  variacaoRecords  VariacaoRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  governanceRecords GovernanceRecord[]
+}
+
+model Role {
+  id    String @id @default(uuid())
+  title String @unique
+
+  activeLists ActiveList[]
+  planRecords PlanRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  governanceRecords GovernanceRecord[]
+}
+
+model Employee {
+  id              String    @id @default(uuid())
+  registration    String    @unique // Matrícula
+  name            String
+  cpf             String?
+  admissionDate   DateTime?
+  terminationDate DateTime?
+  status          String    @default("Ativo")
+
+  activeLists ActiveList[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ImportHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  baseType     String // "ATIVOS", "PA"
+  importDate   DateTime @default(now())
+  status       String // "SUCESSO", "ERRO"
+  validRecords Int      @default(0)
+  errorRecords Int      @default(0)
+  competence   String? // e.g., "01/2026"
+  fileHash     String?
+
+  activeLists ActiveList[]
+
+  createdAt DateTime @default(now())
+}
+
+model ActiveList {
+  id            String        @id @default(uuid())
+  importId      String
+  importHistory ImportHistory @relation(fields: [importId], references: [id], onDelete: Cascade)
+  employeeId    String
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  costCenterId  String
+  costCenter    CostCenter    @relation(fields: [costCenterId], references: [id])
+  roleId        String
+  role          Role          @relation(fields: [roleId], references: [id])
+
+  competence String // e.g., "01/2026"
+  status     String @default("Ativo")
+  fteValue   Float  @default(1.0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([employeeId, competence])
+}
+
+model PlanVersion {
+  id              String        @id @default(uuid())
+  type            String // "PA", "FORECAST"
+  year            Int
+  description     String?
+  status          String        @default("RASCUNHO") // "VIGENTE", "RASCUNHO", "PUBLICADO", "HISTORICO"
+  parentVersionId String?
+  parentVersion   PlanVersion?  @relation("VersionHistory", fields: [parentVersionId], references: [id])
+  childVersions   PlanVersion[] @relation("VersionHistory")
+
+  records PlanRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanRecord {
+  id           String      @id @default(uuid())
+  versionId    String
+  version      PlanVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  costCenterId String
+  costCenter   CostCenter  @relation(fields: [costCenterId], references: [id])
+  roleId       String
+  role         Role        @relation(fields: [roleId], references: [id])
+
+  competence      String // e.g., "01/2026"
+  plannedFte      Float   @default(0)
+  adjustedFte     Float?
+  justification   String?
+  evidenceChecked Boolean @default(false)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([versionId, costCenterId, roleId, competence])
+}
+
+model Comment {
+  id         String  @id @default(uuid())
+  targetType String // "CONTRACT", "OPERATION", "COST_CENTER"
+  targetId   String // ID of the target
+  competence String?
+  text       String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Log {
+  id      String  @id @default(uuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+  action  String
+  details String? // JSON stringified for sqlite
+
+  createdAt DateTime @default(now())
+}
+
+model FinancialRecord {
+  id           String     @id @default(uuid())
+  costCenterId String
+  costCenter   CostCenter @relation(fields: [costCenterId], references: [id], onDelete: Cascade)
+
+  type       String @default("Custo") // "Receita" ou "Custo"
+  metric     String // Conta contábil (ex: "3.1.01.01.006 - Serviços não faturadas")
+  scenario   String // "PA", "Realizado"
+  competence String // e.g., "01/2026"
+  value      Float  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([costCenterId, type, metric, scenario, competence])
+}
+
+model VariacaoRecord {
+  id           String      @id @default(uuid())
+  costCenterId String?
+  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+
+  contractName String
+  competence   String // e.g., "01/2026"
+
+  ftePa   Float @default(0)
+  valPa   Float @default(0)
+  fteReal Float @default(0)
+  valReal Float @default(0)
+  fteVar  Float @default(0)
+  valVar  Float @default(0)
+
+  isOverhead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([contractName, competence])
+}
+
+model GovernanceRecord {
+  id           String      @id @default(uuid())
+  competence   String
+  contractId   String
+  contract     Contract    @relation(fields: [contractId], references: [id])
+  costCenterId String?
+  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id])
+  roleId       String
+  role         Role        @relation(fields: [roleId], references: [id])
+
+  type             String // "ACRESCIMO", "RETIRADA", "CORRECAO"
+  previousQuantity Float
+  movedQuantity    Float
+  finalQuantity    Float
+  justification    String
+  status           String @default("PENDENTE") // "RASCUNHO", "PENDENTE", "APROVADO", "REPROVADO", "CANCELADO"
+
+  // Enhanced audit & governance fields
+  origin                   String    @default("MANUAL") // "MANUAL", "UPLOAD_FORECAST", "INTEGRACAO"
+  justificationStatus      String    @default("PENDENTE") // "PENDENTE", "JUSTIFICADO", "EM_ANALISE", "APROVADO", "REPROVADO"
+  batchId                  String?
+  batch                    ForecastImportBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  previousVersionId        String?
+  currentVersionId         String?
+  paQuantity               Float     @default(0)
+  previousForecastQuantity Float     @default(0)
+  currentForecastQuantity  Float     @default(0)
+  deltaQuantity            Float     @default(0)
+  isNewRole                Boolean   @default(false)
+  isRemovedRole            Boolean   @default(false)
+  justificationDate        DateTime?
+  justifierUserId          String?
+  justifierUser            User?     @relation("GovernanceJustifier", fields: [justifierUserId], references: [id])
+  notes                    String?
+
+  requesterId String
+  requester   User    @relation("GovernanceRequester", fields: [requesterId], references: [id])
+  approverId  String?
+  approver    User?   @relation("GovernanceApprover", fields: [approverId], references: [id])
+
+  approvalDate DateTime?
+  approverNote String?
+  hasEvidence  Boolean   @default(false)
+
+  evidences GovernanceEvidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ForecastImportBatch {
+  id                        String             @id @default(uuid())
+  batchCode                 String             @unique // e.g., FORECAST-20260918-001
+  fileName                  String?
+  competence                String // e.g. "2026"
+  userId                    String
+  user                      User               @relation(fields: [userId], references: [id])
+  totalProcessed            Int                @default(0)
+  rolesAnalyzed             Int                @default(0)
+  unchangedCount            Int                @default(0)
+  diffCount                 Int                @default(0)
+  additionsCount            Int                @default(0)
+  withdrawalsCount          Int                @default(0)
+  newRolesCount             Int                @default(0)
+  removedRolesCount         Int                @default(0)
+  netDelta                  Float              @default(0)
+  pendingJustificationCount Int                @default(0)
+  
+  governanceRecords         GovernanceRecord[]
+
+  createdAt                 DateTime           @default(now())
+}
+
+model GovernanceEvidence {
+  id                 String           @id @default(uuid())
+  governanceRecordId String
+  governanceRecord   GovernanceRecord @relation(fields: [governanceRecordId], references: [id], onDelete: Cascade)
+  fileName           String
+  fileType           String
+  filePath           String
+  uploaderId         String
+  uploader           User             @relation(fields: [uploaderId], references: [id])
+
+  createdAt DateTime @default(now())
+}
