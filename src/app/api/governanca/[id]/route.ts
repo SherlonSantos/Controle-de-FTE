@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { syncGovernanceToForecast, revertGovernanceFromForecast } from '@/lib/forecastGovernanceSync';
 
 async function recalcForecastAdjustedFte(competence: string, costCenterId: string | null, roleId: string) {
   // Find the forecast record
@@ -150,8 +151,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     });
 
-    if (updated.status === 'APROVADO') {
-       await recalcForecastAdjustedFte(updated.competence, updated.costCenterId, updated.roleId);
+    // Sincroniza a alteração diretamente no Forecast (PlanRecord) para refletir no Dashboard e Administração
+    if (updated.costCenterId) {
+      await syncGovernanceToForecast({
+        competence: updated.competence,
+        costCenterId: updated.costCenterId,
+        roleId: updated.roleId,
+        finalQuantity: updated.finalQuantity,
+        justification: updated.justification
+      });
     }
 
     return NextResponse.json(updated);
@@ -171,8 +179,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     await prisma.governanceRecord.delete({ where: { id } });
 
-    if (record.status === 'APROVADO') {
-       await recalcForecastAdjustedFte(record.competence, record.costCenterId, record.roleId);
+    // Ao excluir o registro de governança, reverte o PlanRecord para a quantidade anterior
+    if (record.costCenterId) {
+      await revertGovernanceFromForecast({
+        competence: record.competence,
+        costCenterId: record.costCenterId,
+        roleId: record.roleId,
+        previousQuantity: record.previousQuantity
+      });
     }
 
     return NextResponse.json({ success: true });

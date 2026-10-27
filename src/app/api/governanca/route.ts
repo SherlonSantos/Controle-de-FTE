@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { syncGovernanceToForecast } from '@/lib/forecastGovernanceSync';
 
 // Mock user for now since auth is not fully configured
 const MOCK_USER_ID = 'cfee0e9c-e773-46ca-a305-0023b9a070b4';
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
         movedQuantity: Number(movedQuantity),
         finalQuantity,
         justification,
-        status: 'PENDENTE',
+        status: 'APROVADO',
         origin: 'MANUAL',
         justificationStatus: 'JUSTIFICADO',
         justificationDate: new Date(),
@@ -119,6 +120,17 @@ export async function POST(request: Request) {
         evidences: true,
       }
     });
+
+    // Espelha automaticamente a alteração na base de Forecast (PlanRecord) para refletir no Dashboard e Administração
+    if (costCenterId) {
+      await syncGovernanceToForecast({
+        competence,
+        costCenterId,
+        roleId,
+        finalQuantity,
+        justification
+      });
+    }
 
     return NextResponse.json(record, { status: 201 });
   } catch (error) {

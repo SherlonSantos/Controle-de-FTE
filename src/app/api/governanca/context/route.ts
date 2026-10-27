@@ -37,25 +37,47 @@ export async function GET(request: Request) {
       }
     });
 
-    const results: any[] = [];
+    const contextMap = new Map<string, any>();
 
-    // Flatten data to send to the frontend
+    // Agrupa e prioriza a versão vigente de Forecast sobre o PA para cada (Centro de Custo, Cargo)
     operations.forEach(op => {
       op.costCenters.forEach(cc => {
         cc.planRecords.forEach(record => {
-          results.push({
+          const key = `${cc.id}_${record.role.id}`;
+          const currentFte = record.adjustedFte !== null && record.adjustedFte !== undefined 
+            ? record.adjustedFte 
+            : record.plannedFte;
+
+          const itemData = {
             costCenterId: cc.id,
             costCenterName: `${cc.code} - ${cc.description || ''}`,
             roleId: record.role.id,
             roleName: record.role.title,
             plannedFte: record.plannedFte,
-            adjustedFte: record.adjustedFte ?? record.plannedFte, // Fallback to planned if null
-            type: record.version.type // "PA" or "FORECAST"
-          });
+            adjustedFte: currentFte,
+            type: record.version.type, // "PA" or "FORECAST"
+            versionStatus: record.version.status
+          };
+
+          if (!contextMap.has(key)) {
+            contextMap.set(key, itemData);
+          } else {
+            const existing = contextMap.get(key);
+            // Prioriza FORECAST sobre PA
+            if (record.version.type === 'FORECAST' && existing.type !== 'FORECAST') {
+              contextMap.set(key, itemData);
+            } else if (record.version.type === 'FORECAST' && existing.type === 'FORECAST') {
+              // Entre versões de FORECAST, prioriza a VIGENTE
+              if (record.version.status === 'VIGENTE') {
+                contextMap.set(key, itemData);
+              }
+            }
+          }
         });
       });
     });
 
+    const results = Array.from(contextMap.values());
     return NextResponse.json(results);
   } catch (error) {
     console.error('Error fetching context:', error);
