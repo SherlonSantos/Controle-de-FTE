@@ -1358,10 +1358,21 @@ export default function ImportacaoPage() {
                     <table className="w-full text-sm text-left">
                       <thead className="bg-[#041A71] text-white">
                         <tr>
-                          <th className="px-6 py-4 font-bold rounded-tl-lg w-[150px]">Código CC</th>
+                          <th className="px-4 py-4 w-[50px] rounded-tl-lg text-center">
+                            <input 
+                              type="checkbox"
+                              checked={ccContratoData.length > 0 && selectedCcIds.length === ccContratoData.length}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedCcIds(ccContratoData.map(cc => cc.id));
+                                else setSelectedCcIds([]);
+                              }}
+                              className="w-4 h-4 rounded border-white/20 bg-black/20 text-[#22c7ac] focus:ring-[#22c7ac] cursor-pointer"
+                            />
+                          </th>
+                          <th className="px-6 py-4 font-bold w-[150px]">Código CC</th>
                           <th className="px-6 py-4 font-bold">Descrição do Centro de Custo</th>
                           <th className="px-6 py-4 font-bold">Contrato Mapeado</th>
-                          <th className="px-6 py-4 font-bold rounded-tr-lg w-[100px]">Ações</th>
+                          <th className="px-6 py-4 font-bold rounded-tr-lg w-[140px] text-right">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-slate-300">
@@ -1521,58 +1532,7 @@ export default function ImportacaoPage() {
               </div>
             )}
 
-            {activeTab === "cc_contrato_view" && (
-            <div className="bg-[#111c33] rounded-2xl border border-white/5 shadow-sm p-6 flex flex-col min-h-[500px]">
-              <div className="flex items-center gap-3 mb-6">
-                <TableProperties className="w-6 h-6 text-[#22c7ac]" />
-                <div>
-                  <h3 className="font-bold text-lg text-white">Tabela CC x Contrato</h3>
-                  <p className="text-sm text-slate-400">Visualiza&ccedil;&atilde;o de todos os Centros de Custo e seus Contratos associados.</p>
-                </div>
-              </div>
 
-              {isLoadingCcContrato ? (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#22c7ac] mb-4" />
-                  <span>Carregando dados...</span>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-[#041A71] text-white">
-                      <tr>
-                        <th className="px-6 py-4 font-bold rounded-tl-lg">C&oacute;digo CC</th>
-                        <th className="px-6 py-4 font-bold">Descri&ccedil;&atilde;o do Centro de Custo</th>
-                        <th className="px-6 py-4 font-bold rounded-tr-lg">Contrato Mapeado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5 text-slate-300">
-                      {ccContratoData.map((cc) => (
-                        <tr key={cc.id} className="hover:bg-white/5 transition-colors">
-                          
-<td className="px-6 py-3">
-  <input 
-    type="checkbox" 
-    checked={selectedCcIds.includes(cc.id)}
-    onChange={(e) => {
-      if (e.target.checked) setSelectedCcIds([...selectedCcIds, cc.id]);
-      else setSelectedCcIds(selectedCcIds.filter(id => id !== cc.id));
-    }}
-    className="w-4 h-4 rounded border-white/20 bg-black/20 text-[#22c7ac] focus:ring-[#22c7ac] cursor-pointer"
-  />
-</td>
-<td className="px-6 py-3 font-mono text-[#22c7ac]">{cc.code}</td>
-
-                          <td className="px-6 py-3">{cc.description}</td>
-                          <td className="px-6 py-3 font-bold text-white">{cc.contractName}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
 
           {activeTab === "categorizacao" && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
