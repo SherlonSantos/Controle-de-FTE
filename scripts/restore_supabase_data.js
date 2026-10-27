@@ -2,7 +2,10 @@ const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
-const prisma = new PrismaClient();
+require('dotenv').config();
+const prisma = new PrismaClient({
+  datasourceUrl: process.env.DIRECT_URL || process.env.DATABASE_URL
+});
 
 function chunkArray(array, size) {
   const chunks = [];
