@@ -1,18 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export const runtime = 'nodejs';
-
-function isDemobilized(competence: any, demobDate: any) {
-  if (!demobDate) return false;
-  if (!competence || !competence.includes('/')) return false;
-  const [mm, yyyy] = competence.split('/');
-  const compDate = new Date(parseInt(yyyy, 10), parseInt(mm, 10) - 1, 1);
-  const demob = new Date(demobDate);
-  demob.setDate(1);
-  demob.setHours(0,0,0,0);
-  return compDate >= demob;
-}
 
 
 export async function POST(req: Request) {
@@ -72,6 +62,9 @@ export async function POST(req: Request) {
     };
 
     for (const item of activeRecords) {
+      if (isDemobilized(item.competence, item.costCenter?.operation?.contract?.demobilizationDate)) {
+        continue;
+      }
       const ccCode = item.costCenter.code || '';
       const ccDesc = item.costCenter.description || '';
       const roleTitle = item.role.title || '';
@@ -117,6 +110,9 @@ export async function POST(req: Request) {
           }
         });
         for (const item of paRecords) {
+          if (isDemobilized(item.competence, item.costCenter?.operation?.contract?.demobilizationDate)) {
+            continue;
+          }
           const ccCode = item.costCenter.code || '';
           const ccDesc = item.costCenter.description || '';
           const roleTitle = item.role.title || '';
@@ -156,6 +152,9 @@ export async function POST(req: Request) {
           }
         });
         for (const item of forecastRecords) {
+          if (isDemobilized(item.competence, item.costCenter?.operation?.contract?.demobilizationDate)) {
+            continue;
+          }
           const ccCode = item.costCenter.code || '';
           const ccDesc = item.costCenter.description || '';
           const roleTitle = item.role.title || '';
@@ -214,6 +213,9 @@ export async function POST(req: Request) {
 
     const financialByCC: Record<string, any> = {};
     for (const record of financialRecords) {
+      if (isDemobilized(record.competence, record.costCenter?.operation?.contract?.demobilizationDate)) {
+        continue;
+      }
       const ccCode = record.costCenter.code;
       if (!financialByCC[ccCode]) {
         financialByCC[ccCode] = {

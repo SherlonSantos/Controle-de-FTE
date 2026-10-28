@@ -53,6 +53,24 @@ export default function Home() {
       .catch(console.error);
   }, []);
 
+  // Update dynamic contract types and cost centers when selected competence changes
+  useEffect(() => {
+    if (selectedCompetences.length === 0) return;
+    fetch(`/api/dashboard/filters?competence=${selectedCompetences[0]}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setFilterOptions((prev: any) => ({
+            ...prev,
+            costCenters: data.costCenters || prev.costCenters,
+            contractTypes: data.contractTypes || prev.contractTypes,
+            types: data.types || prev.types
+          }));
+        }
+      })
+      .catch(console.error);
+  }, [selectedCompetences]);
+
   // Fetch summary when filters change
   useEffect(() => {
     if (filterOptions.competences.length === 0) return; // Wait for initial load

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
@@ -21,10 +21,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Missing contractId' }, { status: 400 });
     }
 
+    let parsedDate: Date | null = null;
+    if (demobilizationDate) {
+      if (typeof demobilizationDate === 'string' && demobilizationDate.length === 7) {
+        parsedDate = new Date(`${demobilizationDate}-01T12:00:00.000Z`);
+      } else {
+        parsedDate = new Date(demobilizationDate);
+      }
+    }
+
     const contract = await prisma.contract.update({
       where: { id: contractId },
       data: {
-        demobilizationDate: demobilizationDate ? new Date(demobilizationDate) : null
+        demobilizationDate: parsedDate
       }
     });
 

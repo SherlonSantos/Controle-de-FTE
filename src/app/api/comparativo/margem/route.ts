@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { extractLocation } from '@/lib/locationHelper';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export const runtime = 'nodejs';
 
@@ -180,6 +181,7 @@ export async function POST(req: Request) {
     // Populate PA
     for (const item of paRecords) {
       if (!item.costCenter || !item.role) continue;
+      if (isDemobilized(competence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
       if (isSubtotalRole(item.costCenter.code, item.costCenter.description || '', item.role.title)) continue;
       const entry = getEntry(item.costCenter, item.role);
       entry.pa += item.plannedFte || 0;
@@ -188,6 +190,7 @@ export async function POST(req: Request) {
     // Populate Forecast
     for (const item of forecastRecords) {
       if (!item.costCenter || !item.role) continue;
+      if (isDemobilized(competence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
       if (isSubtotalRole(item.costCenter.code, item.costCenter.description || '', item.role.title)) continue;
       const entry = getEntry(item.costCenter, item.role);
       const val = item.adjustedFte !== null ? item.adjustedFte : item.plannedFte;
@@ -197,6 +200,7 @@ export async function POST(req: Request) {
     // Populate Realizado
     for (const item of activeRecords) {
       if (!item.costCenter || !item.role) continue;
+      if (isDemobilized(competence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
       if (isSubtotalRole(item.costCenter.code, item.costCenter.description || '', item.role.title)) continue;
       const entry = getEntry(item.costCenter, item.role);
       entry.realizado += item.fteValue || 1.0;

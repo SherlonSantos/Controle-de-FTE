@@ -1,19 +1,8 @@
 export const runtime = 'nodejs';
-
-function isDemobilized(competence: any, demobDate: any) {
-  if (!demobDate) return false;
-  if (!competence || !competence.includes('/')) return false;
-  const [mm, yyyy] = competence.split('/');
-  const compDate = new Date(parseInt(yyyy, 10), parseInt(mm, 10) - 1, 1);
-  const demob = new Date(demobDate);
-  demob.setDate(1);
-  demob.setHours(0,0,0,0);
-  return compDate >= demob;
-}
-
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export async function GET(request: Request) {
   try {

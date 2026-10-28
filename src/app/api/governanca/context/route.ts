@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export async function GET(request: Request) {
   try {
@@ -10,6 +11,14 @@ export async function GET(request: Request) {
 
     if (!competence || !contractId) {
       return NextResponse.json({ error: 'Missing competence or contractId' }, { status: 400 });
+    }
+
+    const contract = await prisma.contract.findUnique({
+      where: { id: contractId },
+      select: { demobilizationDate: true }
+    });
+    if (contract && isDemobilized(competence, contract.demobilizationDate)) {
+      return NextResponse.json([]);
     }
 
     // Fetch context data

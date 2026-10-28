@@ -1,10 +1,13 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const reqComp = searchParams.get('competence');
     // Fetch unique competences from ActiveList and PlanRecord
     const activeCompetences = await prisma.activeList.findMany({
       select: { competence: true },
@@ -73,6 +76,11 @@ export async function GET() {
       
       return true; // Keep everything else (e.g., CCs that are empty but might be needed, or CCs with valid people)
     });
+
+    const targetComp = reqComp || latestActiveCompetence;
+    if (targetComp) {
+      costCenters = costCenters.filter(cc => !isDemobilized(targetComp, cc.operation?.contract?.demobilizationDate));
+    }
 
 
     // Fetch unique statuses from ActiveList (per-month status)

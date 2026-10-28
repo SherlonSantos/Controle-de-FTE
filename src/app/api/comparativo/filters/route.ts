@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { extractLocation, sortCompetences } from '@/lib/locationHelper';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const filterCompetence = searchParams.get('competence');
     // 1. Fetch distinct competences from ActiveList and PlanRecord
     const activeComps = await prisma.activeList.findMany({
       select: { competence: true },
@@ -35,55 +38,6 @@ export async function GET() {
     const activeListCompetences = sortCompetences(Array.from(rawComps).filter(c => activeComps.some(ac => ac.competence?.trim() === c)));
     const sortedCompetences = sortCompetences(Array.from(rawComps));
 
-    // 2. Contracts
-    const contractsData = await prisma.contract.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' }
-    });
-    const contracts = contractsData.map(c => c.name).filter(Boolean);
-
-    // 3. Cost Centers and Locations
-    const costCentersData = await prisma.costCenter.findMany({
-      select: {
-        id: true,
-        code: true,
-        description: true,
-        operation: {
-          select: {
-            contract: {
-              select: { name: true }
-            }
-          }
-        }
-      },
-      orderBy: { code: 'asc' }
-    });
-
-    const locationSet = new Set<string>();
-    const costCenters = costCentersData.map(cc => {
-      const loc = extractLocation(cc.description, cc.code);
-      if (loc && loc !== 'Não informada') locationSet.add(loc);
-      return {
-        id: cc.id,
-        code: cc.code,
-        description: cc.description || '',
-        contractName: cc.operation?.contract?.name || 'Sem Contrato',
-        location: loc
-      };
-    });
-
-    const locations = Array.from(locationSet).sort();
-
-    // 4. Roles
-    const rolesData = await prisma.role.findMany({
-      select: { id: true, title: true },
-      orderBy: { title: 'asc' }
-    });
-    const roles = rolesData
-      .map(r => r.title)
-      .filter(t => t && !t.match(/^\d\.\d/)) // filter out dummy subtotal lines
-      .sort();
-
     // Default initial & final: prefer latest active competences if available
     let defaultInitial = '';
     let defaultFinal = '';
@@ -98,10 +52,67 @@ export async function GET() {
       defaultFinal = sortedCompetences[0];
     }
 
+    const targetComp = filterCompetence || defaultFinal;
+
+    // 2. Contracts
+    const contractsData = await prisma.contract.findMany({
+      select: { id: true, name: true, demobilizationDate: true },
+      orderBy: { name: 'asc' }
+    });
+    const contracts = contractsData
+      .filter(c => !targetComp || !isDemobilized(targetComp, c.demobilizationDate))
+      .map(c => c.name)
+      .filter(Boolean);
+
+    // 3. Cost Centers and Locations
+    const costCentersData = await prisma.costCenter.findMany({
+      select: {
+        id: true,
+        code: true,
+        description: true,
+        operation: {
+          select: {
+            contract: {
+              select: { name: true, demobilizationDate: true }
+            }
+          }
+        }
+      },
+      orderBy: { code: 'asc' }
+    });
+
+    const locationSet = new Set<string>();
+    const costCenters = costCentersData
+      .filter(cc => !targetComp || !isDemobilized(targetComp, cc.operation?.contract?.demobilizationDate))
+      .map(cc => {
+        const loc = extractLocation(cc.description, cc.code);
+        if (loc && loc !== 'Não informada') locationSet.add(loc);
+        return {
+          id: cc.id,
+          code: cc.code,
+          description: cc.description || '',
+          contractName: cc.operation?.contract?.name || 'Sem Contrato',
+          location: loc
+        };
+      });
+
+    const locations = Array.from(locationSet).sort();
+
+    // 4. Roles
+    const rolesData = await prisma.role.findMany({
+      select: { id: true, title: true },
+      orderBy: { title: 'asc' }
+    });
+    const roles = rolesData
+      .map(r => r.title)
+      .filter(t => t && !t.match(/^\d\.\d/)) // filter out dummy subtotal lines
+      .sort();
+
     return NextResponse.json({
       competences: sortedCompetences,
       activeCompetences: activeListCompetences,
       contracts,
+      contractsMetadata: contractsData.map(c => ({ name: c.name, demobilizationDate: c.demobilizationDate })),
       locations,
       costCenters,
       roles,

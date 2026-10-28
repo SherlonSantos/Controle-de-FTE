@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import MultiSelect from "@/components/MultiSelect";
 import EvidenceModal from "@/components/comparativo/EvidenceModal";
+import { isDemobilized } from "@/lib/demobilizationHelper";
 import {
   TrendingUp,
   TrendingDown,
@@ -85,6 +86,7 @@ export default function ComparativoExecutivoPage() {
   const [filterOptions, setFilterOptions] = useState<{
     competences: string[];
     contracts: string[];
+    contractsMetadata?: Array<{ name: string; demobilizationDate?: string | Date | null }>;
     locations: string[];
     costCenters: { id: string; code: string; description: string; contractName: string; location: string }[];
     roles: string[];
@@ -252,6 +254,15 @@ export default function ComparativoExecutivoPage() {
     });
   };
 
+  const availableContracts = useMemo(() => {
+    if (!filterOptions.contractsMetadata || !selectedCompetence) {
+      return filterOptions.contracts || [];
+    }
+    return filterOptions.contractsMetadata
+      .filter((c: any) => !isDemobilized(selectedCompetence, c.demobilizationDate))
+      .map((c: any) => c.name);
+  }, [filterOptions.contractsMetadata, filterOptions.contracts, selectedCompetence]);
+
   // Max absolute percentage among all top contracts to scale proportional deviation bars
   const maxAbsDeviation = useMemo(() => {
     let maxVal = 10;
@@ -324,7 +335,7 @@ export default function ComparativoExecutivoPage() {
           <MultiSelect
             label="Contrato"
             placeholder="Todos os Contratos"
-            options={(filterOptions.contracts || []).map((c) => ({ label: c, value: c }))}
+            options={(availableContracts || []).map((c: string) => ({ label: c, value: c }))}
             selected={selectedContracts}
             onChange={setSelectedContracts}
             theme={isDark ? "dark" : "light"}

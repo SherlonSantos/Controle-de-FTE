@@ -1486,61 +1486,7 @@ export default function ImportacaoPage() {
               </div>
             )}
 
-            {activeTab === "desmobilizacao" && (
-              <div className="bg-[#111c33] rounded-2xl border border-white/5 shadow-sm overflow-hidden min-h-[500px]">
-                <div className="p-6 border-b border-white/5">
-                  <h3 className="font-bold text-white flex items-center gap-2">
-                    <TableProperties className="w-5 h-5 text-[#22c7ac]" />
-                    Desmobilização de Contratos
-                  </h3>
-                  <p className="text-sm text-slate-400 mt-2">Defina uma data a partir da qual o contrato não será mais considerado nos cálculos (PA, Forecast, Financeiro, Dashboard, etc).</p>
-                </div>
-                {desmobLoading ? (
-                  <div className="p-6 text-slate-400">Carregando...</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-white/5 text-slate-400">
-                        <tr>
-                          <th className="px-6 py-4 font-semibold">Contrato</th>
-                          <th className="px-6 py-4 font-semibold">Data de Desmobilização (Mês/Ano)</th>
-                          <th className="px-6 py-4 font-semibold">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5 text-slate-300">
-                        {desmobData.map((contract) => {
-                          const dateVal = contract.demobilizationDate ? new Date(contract.demobilizationDate).toISOString().slice(0,7) : '';
-                          return (
-                            <tr key={contract.id} className="hover:bg-white/5 transition-colors">
-                              <td className="px-6 py-3 font-bold text-white">{contract.name}</td>
-                              <td className="px-6 py-3">
-                                <input 
-                                  type="month" 
-                                  className="bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-white"
-                                  defaultValue={dateVal}
-                                  onChange={(e) => handleDesmobUpdate(contract.id, e.target.value)}
-                                />
-                              </td>
-                              <td className="px-6 py-3">
-                                {contract.demobilizationDate ? (
-                                  <button onClick={() => handleDesmobUpdate(contract.id, '')} className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded hover:bg-red-500/30">Remover</button>
-                                ) : (
-                                  <span className="text-xs text-slate-500">Ativo</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-
-
-          {activeTab === "categorizacao" && (
+            {activeTab === "categorizacao" && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div className="flex items-center gap-3">

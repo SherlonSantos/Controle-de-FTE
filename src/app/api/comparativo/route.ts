@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { extractLocation, sortCompetences } from '@/lib/locationHelper';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 export const runtime = 'nodejs';
 
@@ -254,6 +256,7 @@ export async function POST(req: Request) {
     // Populate PA
     for (const item of paRecords) {
       if (!item.costCenter) continue;
+      if (isDemobilized(selectedCompetence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
       const cName = item.costCenter.operation?.contract?.name || 'Sem Contrato';
       const cId = item.costCenter.operation?.contract?.id || '';
       const ccCode = item.costCenter.code || '';
@@ -279,6 +282,7 @@ export async function POST(req: Request) {
     // Populate Forecast
     for (const item of forecastRecords) {
       if (!item.costCenter) continue;
+      if (isDemobilized(selectedCompetence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
       const cName = item.costCenter.operation?.contract?.name || 'Sem Contrato';
       const cId = item.costCenter.operation?.contract?.id || '';
       const ccCode = item.costCenter.code || '';
@@ -309,6 +313,7 @@ export async function POST(req: Request) {
     // Populate Realizado
     for (const item of activeRecords) {
       if (!item.costCenter) continue;
+      if (isDemobilized(selectedCompetence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
       const cName = item.costCenter.operation?.contract?.name || 'Sem Contrato';
       const cId = item.costCenter.operation?.contract?.id || '';
       const ccCode = item.costCenter.code || '';
@@ -474,6 +479,7 @@ export async function POST(req: Request) {
     if (prevActiveRecords.length > 0) {
       for (const item of prevActiveRecords) {
         if (!item.costCenter) continue;
+        if (previousCompetence && isDemobilized(previousCompetence, item.costCenter.operation?.contract?.demobilizationDate)) continue;
         const ccCode = item.costCenter.code || '';
         const ccDesc = item.costCenter.description || '';
         const roleTitle = item.role?.title || '';
@@ -507,55 +513,83 @@ export async function POST(req: Request) {
       `09/${yearInt}`, `10/${yearInt}`, `11/${yearInt}`, `12/${yearInt}`
     ];
 
-    // High performance SQL GROUP BY for historical evolution FTE + Financial records
+    // Financial calculations by competence (matching dashboard rules)
+    const hasFilter = Object.keys(ccFilter).length > 0;
+    let validCCs: string[] = [];
+    let validCCodes: string[] = [];
+    if (hasFilter) {
+      const validCostCenters = await prisma.costCenter.findMany({ where: ccFilter, select: { id: true, code: true } });
+      validCCs = validCostCenters.map(c => c.id);
+      validCCodes = validCostCenters.map(c => c.code);
+    }
+
+    const ccCondition = hasFilter && validCCs.length > 0
+      ? Prisma.sql`AND cc.id IN (${Prisma.join(validCCs)})`
+      : hasFilter
+        ? Prisma.sql`AND 1=0`
+        : Prisma.empty;
+
+    // High performance SQL GROUP BY for historical evolution FTE (excluding demobilized contracts per month) + Financial records
     const [paGrouped, fcGrouped, actGrouped, variacaoRecords] = await Promise.all([
       paVersion
-        ? prisma.planRecord.groupBy({
-            by: ['competence'],
-            where: {
-              versionId: paVersion.id,
-              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
-            },
-            _sum: { plannedFte: true }
-          })
-        : [],
+        ? prisma.$queryRaw<Array<{ competence: string; pa: number }>>`
+            SELECT p.competence, SUM(COALESCE(p."plannedFte", 0))::float as pa
+            FROM "PlanRecord" p
+            JOIN "CostCenter" cc ON p."costCenterId" = cc.id
+            LEFT JOIN "Operation" op ON cc."operationId" = op.id
+            LEFT JOIN "Contract" c ON op."contractId" = c.id
+            WHERE p."versionId" = ${paVersion.id}
+              ${ccCondition}
+              AND (
+                c."demobilizationDate" IS NULL 
+                OR to_date(p.competence, 'MM/YYYY') < date_trunc('month', c."demobilizationDate")
+              )
+            GROUP BY p.competence
+          `
+        : Promise.resolve([]),
       forecastVersion
-        ? prisma.planRecord.groupBy({
-            by: ['competence'],
-            where: {
-              versionId: forecastVersion.id,
-              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
-            },
-            _sum: { plannedFte: true, adjustedFte: true }
-          })
-        : [],
-      prisma.activeList.groupBy({
-        by: ['competence'],
-        where: {
-          status: { not: 'Rescisão' },
-          ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
-        },
-        _sum: { fteValue: true },
-        _count: true
-      }),
+        ? prisma.$queryRaw<Array<{ competence: string; forecast: number }>>`
+            SELECT p.competence, SUM(COALESCE(p."adjustedFte", p."plannedFte", 0))::float as forecast
+            FROM "PlanRecord" p
+            JOIN "CostCenter" cc ON p."costCenterId" = cc.id
+            LEFT JOIN "Operation" op ON cc."operationId" = op.id
+            LEFT JOIN "Contract" c ON op."contractId" = c.id
+            WHERE p."versionId" = ${forecastVersion.id}
+              ${ccCondition}
+              AND (
+                c."demobilizationDate" IS NULL 
+                OR to_date(p.competence, 'MM/YYYY') < date_trunc('month', c."demobilizationDate")
+              )
+            GROUP BY p.competence
+          `
+        : Promise.resolve([]),
+      prisma.$queryRaw<Array<{ competence: string; realizado: number }>>`
+        SELECT a.competence, SUM(COALESCE(a."fteValue", 1.0))::float as realizado
+        FROM "ActiveList" a
+        JOIN "CostCenter" cc ON a."costCenterId" = cc.id
+        LEFT JOIN "Operation" op ON cc."operationId" = op.id
+        LEFT JOIN "Contract" c ON op."contractId" = c.id
+        WHERE a.status != 'Rescisão'
+          ${ccCondition}
+          AND (
+            c."demobilizationDate" IS NULL 
+            OR to_date(a.competence, 'MM/YYYY') < date_trunc('month', c."demobilizationDate")
+          )
+        GROUP BY a.competence
+      `,
       prisma.variacaoRecord.findMany({
         where: { competence: { in: allMonths } },
         include: { costCenter: { include: { operation: { include: { contract: true } } } } }
       })
     ]);
 
-    // Financial calculations by competence (matching dashboard rules)
-    const hasFilter = Object.keys(ccFilter).length > 0;
-    let validCCodes: string[] = [];
-    if (hasFilter) {
-      const validCCs = await prisma.costCenter.findMany({ where: ccFilter, select: { code: true } });
-      validCCodes = validCCs.map(c => c.code);
-    }
-
     const financialByComp = new Map<string, { valPa: number; valReal: number }>();
     allMonths.forEach(m => financialByComp.set(m, { valPa: 0, valReal: 0 }));
 
     for (const record of variacaoRecords) {
+      if (isDemobilized(record.competence, record.costCenter?.operation?.contract?.demobilizationDate)) {
+        continue;
+      }
       let prefix = "";
       if (record.contractName) {
         prefix = record.contractName.split('-')[0].replace(/\./g, '').trim().substring(0, 6);
@@ -589,22 +623,19 @@ export async function POST(req: Request) {
     for (const g of paGrouped) {
       const comp = g.competence?.trim();
       if (!comp || !compSumsMap.has(comp)) continue;
-      compSumsMap.get(comp)!.pa = g._sum.plannedFte || 0;
+      compSumsMap.get(comp)!.pa = Number(g.pa) || 0;
     }
 
     for (const g of fcGrouped) {
       const comp = g.competence?.trim();
       if (!comp || !compSumsMap.has(comp)) continue;
-      const fcVal = g._sum.adjustedFte !== null && g._sum.adjustedFte !== undefined
-        ? g._sum.adjustedFte
-        : (g._sum.plannedFte || 0);
-      compSumsMap.get(comp)!.forecast = fcVal;
+      compSumsMap.get(comp)!.forecast = Number(g.forecast) || 0;
     }
 
     for (const g of actGrouped) {
       const comp = g.competence?.trim();
       if (!comp || !compSumsMap.has(comp)) continue;
-      compSumsMap.get(comp)!.realizado = g._sum.fteValue || g._count;
+      compSumsMap.get(comp)!.realizado = Number(g.realizado) || 0;
     }
 
     const selPa = compSumsMap.get(selectedCompetence)?.pa || 0;

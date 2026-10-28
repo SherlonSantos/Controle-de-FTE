@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { syncGovernanceToForecast } from '@/lib/forecastGovernanceSync';
+import { isDemobilized } from '@/lib/demobilizationHelper';
 
 // Mock user for now since auth is not fully configured
 const MOCK_USER_ID = 'cfee0e9c-e773-46ca-a305-0023b9a070b4';
@@ -42,7 +43,8 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json(records);
+    const filteredRecords = records.filter(r => !isDemobilized(r.competence, r.contract?.demobilizationDate));
+    return NextResponse.json(filteredRecords);
   } catch (error) {
     console.error('Error fetching governance records:', error);
     return NextResponse.json({ error: 'Failed to fetch governance records' }, { status: 500 });
