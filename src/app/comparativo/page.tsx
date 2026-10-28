@@ -276,15 +276,18 @@ export default function ComparativoExecutivoPage() {
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-[#0a0f1d] text-white' : 'bg-slate-50 text-slate-800'} ${isFullscreen ? 'p-3 md:p-6' : 'p-4 md:p-8'}`}>
       
       {/* 1. Header Executivo e Filtros */}
-      <header className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pb-5 border-b border-slate-800/80 shrink-0">
+      <header className={`flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pb-5 border-b shrink-0 ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
+
         <div>
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-7 bg-[#22c7ac] rounded-full shadow-lg shadow-[#22c7ac]/30" />
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase font-sans">
+            <h1 className={`text-xl md:text-2xl font-black tracking-tight uppercase font-sans ${isDark ? "text-white" : "text-[#041A71]"}`}>
+
               Controle de FTE <span className="text-slate-400 font-light">|</span> <span className="text-[#22c7ac]">Visão Executiva</span>
             </h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1 pl-5 font-medium flex items-center gap-2">
+          <p className={`text-xs mt-1 pl-5 font-medium flex items-center gap-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
             <span>Comparativo gerencial de efetivo para diretoria</span>
             <span className="text-slate-600">•</span>
             <span className="text-[#22c7ac] bg-[#22c7ac]/10 px-2 py-0.5 rounded text-[11px] font-semibold">
@@ -297,17 +300,18 @@ export default function ComparativoExecutivoPage() {
         <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
           {/* Competence Selector */}
           <div className="flex flex-col min-w-[140px]">
-            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+            <label className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+
               Competência
             </label>
             <div className="relative">
               <select
                 value={selectedCompetence}
                 onChange={(e) => setSelectedCompetence(e.target.value)}
-                className="w-full bg-[#131d36] text-white text-xs md:text-sm font-semibold rounded-lg px-3 py-2 border border-slate-700/80 outline-none hover:border-[#22c7ac] transition-all cursor-pointer shadow-sm appearance-none pr-8"
+                className={`w-full text-xs md:text-sm font-semibold rounded-lg px-3 py-2 border outline-none hover:border-[#22c7ac] transition-all cursor-pointer shadow-sm appearance-none pr-8 ${isDark ? "bg-[#131d36] text-white border-slate-700/80" : "bg-white text-slate-800 border-slate-300"}`}
               >
                 {(filterOptions.competences || []).map((c) => (
-                  <option key={c} value={c} className="bg-[#111c33] text-white">
+                  <option key={c} value={c} className={isDark ? "bg-[#111c33] text-white" : "bg-white text-slate-800"}>
                     {c} {c === filterOptions.defaultFinal ? "(Vigente)" : ""}
                   </option>
                 ))}
@@ -351,7 +355,7 @@ export default function ComparativoExecutivoPage() {
             <button
               onClick={handleClearFilters}
               title="Limpar todos os filtros"
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#131d36] hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 rounded-lg text-xs font-bold transition-all shadow-sm h-[38px]"
+              className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-bold transition-all shadow-sm h-[38px] ${isDark ? "bg-[#131d36] hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/80" : "bg-white hover:bg-slate-100 text-slate-700 border-slate-300"}`}
             >
               <FilterX className="w-3.5 h-3.5 text-slate-400" />
               <span className="hidden sm:inline">Limpar</span>
@@ -363,7 +367,7 @@ export default function ComparativoExecutivoPage() {
                 fetchData();
               }}
               title="Atualizar dados"
-              className="p-2 bg-[#131d36] hover:bg-slate-800 text-slate-300 hover:text-[#22c7ac] border border-slate-700/80 rounded-lg text-xs font-bold transition-all shadow-sm h-[38px] w-[38px] flex items-center justify-center"
+              className={`p-2 border rounded-lg text-xs font-bold transition-all shadow-sm h-[38px] w-[38px] flex items-center justify-center ${isDark ? "bg-[#131d36] hover:bg-slate-800 text-slate-300 hover:text-[#22c7ac] border-slate-700/80" : "bg-white hover:bg-slate-100 text-slate-700 hover:text-[#22c7ac] border-slate-300"}`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#22c7ac]' : ''}`} />
             </button>
@@ -376,7 +380,7 @@ export default function ComparativoExecutivoPage() {
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-sm h-[38px] ${
                 isFullscreen
                   ? 'bg-[#22c7ac] text-[#041A71] shadow-lg shadow-[#22c7ac]/20'
-                  : 'bg-[#162038] hover:bg-[#1c294a] text-slate-200 border border-slate-700/80'
+                  : (isDark ? "bg-[#162038] hover:bg-[#1c294a] text-slate-200 border border-slate-700/80" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-300")
               }`}
             >
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5 text-[#22c7ac]" />}
@@ -392,53 +396,57 @@ export default function ComparativoExecutivoPage() {
         {/* 2. Cards de Indicadores (mesmo padrão da aba Dashboard) */}
         <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
           {/* Card 1: FTE PA */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:border-[#3A78DE]/40 transition-colors">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between relative overflow-hidden group transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg hover:border-[#3A78DE]/40" : "bg-white border-slate-200 text-slate-800 shadow-sm hover:border-[#3A78DE]/40"}`}>
+            <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
               <span>FTE PA</span>
               <span className="w-2 h-2 rounded-full bg-[#3A78DE]" />
             </div>
-            <div className="text-3xl font-light text-white tracking-tight my-1">
+            <div className={`text-3xl font-light tracking-tight my-1 ${isDark ? "text-white" : "text-slate-900"}`}>
               {isLoading ? "..." : formatNumber(cards.totalPA)}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium">
+            <div className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               Planejado aprovado anual
             </div>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#3A78DE]/40" />
           </div>
 
           {/* Card 2: FTE Forecast */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:border-indigo-500/40 transition-colors">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between relative overflow-hidden group transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg hover:border-indigo-500/40" : "bg-white border-slate-200 text-slate-800 shadow-sm hover:border-indigo-500/40"}`}>
+            <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
               <span>FTE Forecast</span>
               <span className="w-2 h-2 rounded-full bg-indigo-400" />
             </div>
-            <div className="text-3xl font-light text-white tracking-tight my-1">
+            <div className={`text-3xl font-light tracking-tight my-1 ${isDark ? "text-white" : "text-slate-900"}`}>
               {isLoading ? "..." : formatNumber(cards.totalForecast)}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium">
+            <div className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               Baseline ajustado vigente
             </div>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500/40" />
           </div>
 
           {/* Card 3: FTE Realizado */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between relative overflow-hidden group hover:border-[#00CE7C]/40 transition-colors">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between relative overflow-hidden group transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg hover:border-[#00CE7C]/40" : "bg-white border-slate-200 text-slate-800 shadow-sm hover:border-[#00CE7C]/40"}`}>
+            <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
               <span>FTE Realizado</span>
               <span className="w-2 h-2 rounded-full bg-[#00CE7C]" />
             </div>
-            <div className="text-3xl font-light text-white tracking-tight my-1">
+            <div className={`text-3xl font-light tracking-tight my-1 ${isDark ? "text-white" : "text-slate-900"}`}>
               {isLoading ? "..." : formatNumber(cards.totalRealizado)}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium">
+            <div className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               Efetivo ativo consolidado
             </div>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#00CE7C]/40" />
           </div>
 
           {/* Card 4: Dif. Real x PA */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between relative overflow-hidden group transition-colors">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between relative overflow-hidden group transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
+            <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
               <span>Dif. Real x PA</span>
               {cards.difPA > 0 ? (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold">Acima</span>
@@ -453,15 +461,16 @@ export default function ComparativoExecutivoPage() {
             }`}>
               {isLoading ? "..." : (cards.difPA > 0 ? `+${formatNumber(cards.difPA)}` : formatNumber(cards.difPA))}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium">
+            <div className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               {cards.difPA > 0 ? "Excesso em relação ao PA" : "Saldo em relação ao PA"}
             </div>
             <div className={`absolute bottom-0 left-0 right-0 h-1 ${cards.difPA > 0 ? 'bg-red-500/60' : cards.difPA < 0 ? 'bg-emerald-500/60' : 'bg-slate-600'}`} />
           </div>
 
           {/* Card 5: Dif. Real x Forecast */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between relative overflow-hidden group transition-colors">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between relative overflow-hidden group transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
+            <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
               <span>Dif. Real x Forecast</span>
               {cards.difForecast > 0 ? (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold">Acima</span>
@@ -476,15 +485,16 @@ export default function ComparativoExecutivoPage() {
             }`}>
               {isLoading ? "..." : (cards.difForecast > 0 ? `+${formatNumber(cards.difForecast)}` : formatNumber(cards.difForecast))}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium">
+            <div className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               Variação vs baseline ajustado
             </div>
             <div className={`absolute bottom-0 left-0 right-0 h-1 ${cards.difForecast > 0 ? 'bg-red-500/60' : cards.difForecast < 0 ? 'bg-emerald-500/60' : 'bg-slate-600'}`} />
           </div>
 
           {/* Card 6: % Variação PA */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between relative overflow-hidden group transition-colors">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between relative overflow-hidden group transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
+            <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+
               <span>% Variação PA</span>
               {cards.pctPA !== null && (
                 cards.pctPA > 0 ? (
@@ -499,7 +509,7 @@ export default function ComparativoExecutivoPage() {
             }`}>
               {isLoading ? "..." : formatPercent(cards.pctPA)}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium truncate">
+            <div className={`text-[11px] font-medium truncate ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               Variação percentual do efetivo
             </div>
             <div className={`absolute bottom-0 left-0 right-0 h-1 ${cards.pctPA > 0 ? 'bg-red-500/60' : cards.pctPA < 0 ? 'bg-emerald-500/60' : 'bg-slate-600'}`} />
@@ -510,12 +520,12 @@ export default function ComparativoExecutivoPage() {
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* TABELA A: TOP 10 MAIORES DESVIOS */}
-          <div className="bg-[#111c33] rounded-xl border border-slate-800/90 shadow-xl flex flex-col overflow-hidden">
+          <div className={`rounded-xl border flex flex-col overflow-hidden shadow-sm transition-all ${isDark ? "bg-[#111c33] border-slate-800/90 shadow-xl text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             {/* Header da Tabela A */}
-            <div className="px-5 py-3.5 bg-[#0e172a] border-b border-slate-800/80 flex items-center justify-between">
+            <div className={`px-5 py-3.5 border-b flex items-center justify-between transition-colors ${isDark ? "bg-[#0e172a] border-slate-800/80 text-white" : "bg-slate-100 border-slate-200 text-[#041A71]"}`}>
               <div className="flex items-center gap-2.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-md shadow-red-500/40" />
-                <h3 className="font-extrabold text-sm md:text-base text-white tracking-wide uppercase">
+                <h3 className={`font-extrabold text-sm md:text-base tracking-wide uppercase ${isDark ? "text-white" : "text-[#041A71]"}`}>
                   TOP 10 | Maiores desvios de FTE
                 </h3>
               </div>
@@ -527,7 +537,7 @@ export default function ComparativoExecutivoPage() {
             {/* Table Content */}
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-xs text-left whitespace-nowrap">
-                <thead className="bg-[#0b1222] text-slate-400 font-bold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+                <thead className={`font-bold border-b text-[11px] uppercase tracking-wider ${isDark ? "bg-[#0b1222] text-slate-400 border-slate-800" : "bg-slate-50 text-slate-600 border-slate-200"}`}>
                   <tr>
                     <th className="py-2.5 px-3 w-8 text-center">#</th>
                     <th className="py-2.5 px-3">Contrato</th>
@@ -538,7 +548,7 @@ export default function ComparativoExecutivoPage() {
                     <th className="py-2.5 px-3 text-right min-w-[130px]">% Dif. Real.</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50 text-slate-200">
+                <tbody className={`divide-y text-xs ${isDark ? "divide-slate-800/50 text-slate-200" : "divide-slate-200 text-slate-700"}`}>
                   {isLoading ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -562,14 +572,12 @@ export default function ComparativoExecutivoPage() {
                           {/* Level 1: Contract Row */}
                           <tr
                             onClick={() => toggleRow(`c_${contract.contractName}`)}
-                            className={`group cursor-pointer transition-colors hover:bg-white/[0.04] ${
-                              isExpanded ? 'bg-white/[0.03]' : ''
-                            }`}
+                            className={`group cursor-pointer transition-colors ${isDark ? "hover:bg-white/[0.04]" : "hover:bg-slate-50"} ${isExpanded ? (isDark ? "bg-white/[0.03]" : "bg-slate-50/70") : ""}`}
                           >
                             <td className="py-2.5 px-3 text-center font-bold text-slate-400 font-mono">
                               {contract.rank}º
                             </td>
-                            <td className="py-2.5 px-3 font-semibold text-white">
+                            <td className={`py-2.5 px-3 font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
                               <div className="flex items-center gap-1.5 max-w-[220px] truncate" title={contract.contractName}>
                                 {isExpanded ? (
                                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -584,13 +592,13 @@ export default function ComparativoExecutivoPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 text-right font-medium text-slate-300">
+                            <td className={`py-2.5 px-3 text-right font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                               {formatNumber(contract.pa)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-medium text-slate-400">
+                            <td className={`py-2.5 px-3 text-right font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                               {formatNumber(contract.forecast)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-white">
+                            <td className={`py-2.5 px-3 text-right font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
                               {formatNumber(contract.realizado)}
                             </td>
                             <td className="py-2.5 px-3 text-right font-bold text-red-400 font-mono">
@@ -598,7 +606,7 @@ export default function ComparativoExecutivoPage() {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <div className="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden shrink-0">
+                                <div className={`w-16 rounded-full h-1.5 overflow-hidden shrink-0 ${isDark ? "bg-slate-800" : "bg-slate-200"}`}>
                                   <div
                                     className="bg-red-500 h-full rounded-full transition-all"
                                     style={{ width: `${barWidth}%` }}
@@ -618,7 +626,7 @@ export default function ComparativoExecutivoPage() {
                               <React.Fragment key={loc.costCenterCode}>
                                 <tr
                                   onClick={() => toggleRow(`l_${contract.contractName}_${loc.costCenterCode}`)}
-                                  className="bg-[#0b1221]/80 hover:bg-[#0f172a] text-slate-300 cursor-pointer border-t border-slate-800/40 text-[11px]"
+                                  className={`cursor-pointer transition-colors text-[11px] border-t ${isDark ? "bg-[#0b1221]/80 hover:bg-[#0f172a] text-slate-300 border-slate-800/40" : "bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200"}`}
                                 >
                                   <td className="py-2 px-3"></td>
                                   <td className="py-2 px-3 pl-8">
@@ -628,7 +636,7 @@ export default function ComparativoExecutivoPage() {
                                       ) : (
                                         <ChevronRight className="w-3 h-3 text-slate-500 shrink-0" />
                                       )}
-                                      <span className="font-semibold text-slate-200 truncate">
+                                      <span className={`font-semibold truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                                         {loc.locationName}
                                       </span>
                                       <span className="text-[10px] text-slate-500 font-mono">
@@ -636,13 +644,13 @@ export default function ComparativoExecutivoPage() {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-2 px-3 text-right text-slate-400">{formatNumber(loc.pa)}</td>
+                                  <td className={`py-2 px-3 text-right ${isDark ? "text-slate-400" : "text-slate-600"}`}>{formatNumber(loc.pa)}</td>
                                   <td className="py-2 px-3 text-right text-slate-500">{formatNumber(loc.forecast)}</td>
-                                  <td className="py-2 px-3 text-right font-semibold text-slate-200">{formatNumber(loc.realizado)}</td>
+                                  <td className={`py-2 px-3 text-right font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>{formatNumber(loc.realizado)}</td>
                                   <td className={`py-2 px-3 text-right font-bold font-mono ${loc.difFTE > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                     {loc.difFTE > 0 ? `+${formatNumber(loc.difFTE)}` : formatNumber(loc.difFTE)}
                                   </td>
-                                  <td className="py-2 px-3 text-right font-mono font-medium text-slate-300">
+                                  <td className={`py-2 px-3 text-right font-mono font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                                     {loc.hasZeroPA ? "N/A" : formatPercent(loc.pctDif)}
                                   </td>
                                 </tr>
@@ -651,12 +659,12 @@ export default function ComparativoExecutivoPage() {
                                 {isLocExpanded && loc.roles?.map((role: any, rIdx: number) => (
                                   <tr
                                     key={rIdx}
-                                    className="bg-[#070b14] text-slate-400 border-t border-slate-800/20 text-[10.5px] hover:bg-white/[0.02]"
+                                    className={`text-[10.5px] border-t transition-colors ${isDark ? "bg-[#070b14] text-slate-400 border-slate-800/20 hover:bg-white/[0.02]" : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50"}`}
                                   >
                                     <td className="py-1.5 px-3"></td>
                                     <td className="py-1.5 px-3 pl-14">
                                       <div className="flex items-center gap-1.5">
-                                        <span className="truncate max-w-[170px] text-slate-300 font-medium" title={role.roleTitle}>
+                                        <span className={`truncate max-w-[170px] font-medium ${isDark ? "text-slate-300" : "text-slate-800"}`} title={role.roleTitle}>
                                           {role.roleTitle}
                                         </span>
                                         {role.justification && (
@@ -687,9 +695,9 @@ export default function ComparativoExecutivoPage() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="py-1.5 px-3 text-right">{formatNumber(role.pa)}</td>
+                                    <td className={`py-1.5 px-3 text-right ${isDark ? "text-slate-400" : "text-slate-600"}`}>{formatNumber(role.pa)}</td>
                                     <td className="py-1.5 px-3 text-right text-slate-500">{formatNumber(role.forecast)}</td>
-                                    <td className="py-1.5 px-3 text-right text-slate-300 font-medium">{formatNumber(role.realizado)}</td>
+                                    <td className={`py-1.5 px-3 text-right font-medium ${isDark ? "text-slate-300" : "text-slate-800"}`}>{formatNumber(role.realizado)}</td>
                                     <td className={`py-1.5 px-3 text-right font-mono font-bold ${role.difFTE > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                       {role.difFTE > 0 ? `+${formatNumber(role.difFTE)}` : formatNumber(role.difFTE)}
                                     </td>
@@ -710,19 +718,19 @@ export default function ComparativoExecutivoPage() {
             </div>
 
             {/* Footer com indicação de Drill-down */}
-            <div className="px-4 py-2 bg-[#0b1222] border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <div className={`px-4 py-2 border-t text-[11px] flex items-center justify-between ${isDark ? "bg-[#0b1222] border-slate-800 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
               <span>Drill-down: contrato → localidade → cargo</span>
               <span className="text-[10px] text-slate-500">Clique para expandir</span>
             </div>
           </div>
 
           {/* TABELA B: TOP 10 MENORES DESVIOS */}
-          <div className="bg-[#111c33] rounded-xl border border-slate-800/90 shadow-xl flex flex-col overflow-hidden">
+          <div className={`rounded-xl border flex flex-col overflow-hidden shadow-sm transition-all ${isDark ? "bg-[#111c33] border-slate-800/90 shadow-xl text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             {/* Header da Tabela B */}
-            <div className="px-5 py-3.5 bg-[#0e172a] border-b border-slate-800/80 flex items-center justify-between">
+            <div className={`px-5 py-3.5 border-b flex items-center justify-between transition-colors ${isDark ? "bg-[#0e172a] border-slate-800/80 text-white" : "bg-slate-100 border-slate-200 text-[#041A71]"}`}>
               <div className="flex items-center gap-2.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#00CE7C] shadow-md shadow-[#00CE7C]/40" />
-                <h3 className="font-extrabold text-sm md:text-base text-white tracking-wide uppercase">
+                <h3 className={`font-extrabold text-sm md:text-base tracking-wide uppercase ${isDark ? "text-white" : "text-[#041A71]"}`}>
                   TOP 10 | Menores desvios de FTE
                 </h3>
               </div>
@@ -734,7 +742,7 @@ export default function ComparativoExecutivoPage() {
             {/* Table Content */}
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-xs text-left whitespace-nowrap">
-                <thead className="bg-[#0b1222] text-slate-400 font-bold border-b border-slate-800 text-[11px] uppercase tracking-wider">
+                <thead className={`font-bold border-b text-[11px] uppercase tracking-wider ${isDark ? "bg-[#0b1222] text-slate-400 border-slate-800" : "bg-slate-50 text-slate-600 border-slate-200"}`}>
                   <tr>
                     <th className="py-2.5 px-3 w-8 text-center">#</th>
                     <th className="py-2.5 px-3">Contrato</th>
@@ -745,7 +753,7 @@ export default function ComparativoExecutivoPage() {
                     <th className="py-2.5 px-3 text-right min-w-[130px]">% Dif. Real.</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50 text-slate-200">
+                <tbody className={`divide-y text-xs ${isDark ? "divide-slate-800/50 text-slate-200" : "divide-slate-200 text-slate-700"}`}>
                   {isLoading ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -769,14 +777,12 @@ export default function ComparativoExecutivoPage() {
                           {/* Level 1: Contract Row */}
                           <tr
                             onClick={() => toggleRow(`c_menor_${contract.contractName}`)}
-                            className={`group cursor-pointer transition-colors hover:bg-white/[0.04] ${
-                              isExpanded ? 'bg-white/[0.03]' : ''
-                            }`}
+                            className={`group cursor-pointer transition-colors ${isDark ? "hover:bg-white/[0.04]" : "hover:bg-slate-50"} ${isExpanded ? (isDark ? "bg-white/[0.03]" : "bg-slate-50/70") : ""}`}
                           >
                             <td className="py-2.5 px-3 text-center font-bold text-slate-400 font-mono">
                               {contract.rank}º
                             </td>
-                            <td className="py-2.5 px-3 font-semibold text-white">
+                            <td className={`py-2.5 px-3 font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
                               <div className="flex items-center gap-1.5 max-w-[220px] truncate" title={contract.contractName}>
                                 {isExpanded ? (
                                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -786,13 +792,13 @@ export default function ComparativoExecutivoPage() {
                                 <span className="truncate">{contract.contractName}</span>
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 text-right font-medium text-slate-300">
+                            <td className={`py-2.5 px-3 text-right font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                               {formatNumber(contract.pa)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-medium text-slate-400">
+                            <td className={`py-2.5 px-3 text-right font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                               {formatNumber(contract.forecast)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-white">
+                            <td className={`py-2.5 px-3 text-right font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
                               {formatNumber(contract.realizado)}
                             </td>
                             <td className="py-2.5 px-3 text-right font-bold text-[#00CE7C] font-mono">
@@ -800,7 +806,7 @@ export default function ComparativoExecutivoPage() {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <div className="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden shrink-0">
+                                <div className={`w-16 rounded-full h-1.5 overflow-hidden shrink-0 ${isDark ? "bg-slate-800" : "bg-slate-200"}`}>
                                   <div
                                     className="bg-[#00CE7C] h-full rounded-full transition-all"
                                     style={{ width: `${barWidth}%` }}
@@ -820,7 +826,7 @@ export default function ComparativoExecutivoPage() {
                               <React.Fragment key={loc.costCenterCode}>
                                 <tr
                                   onClick={() => toggleRow(`l_menor_${contract.contractName}_${loc.costCenterCode}`)}
-                                  className="bg-[#0b1221]/80 hover:bg-[#0f172a] text-slate-300 cursor-pointer border-t border-slate-800/40 text-[11px]"
+                                  className={`cursor-pointer transition-colors text-[11px] border-t ${isDark ? "bg-[#0b1221]/80 hover:bg-[#0f172a] text-slate-300 border-slate-800/40" : "bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200"}`}
                                 >
                                   <td className="py-2 px-3"></td>
                                   <td className="py-2 px-3 pl-8">
@@ -830,7 +836,7 @@ export default function ComparativoExecutivoPage() {
                                       ) : (
                                         <ChevronRight className="w-3 h-3 text-slate-500 shrink-0" />
                                       )}
-                                      <span className="font-semibold text-slate-200 truncate">
+                                      <span className={`font-semibold truncate ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                                         {loc.locationName}
                                       </span>
                                       <span className="text-[10px] text-slate-500 font-mono">
@@ -838,13 +844,13 @@ export default function ComparativoExecutivoPage() {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-2 px-3 text-right text-slate-400">{formatNumber(loc.pa)}</td>
+                                  <td className={`py-2 px-3 text-right ${isDark ? "text-slate-400" : "text-slate-600"}`}>{formatNumber(loc.pa)}</td>
                                   <td className="py-2 px-3 text-right text-slate-500">{formatNumber(loc.forecast)}</td>
-                                  <td className="py-2 px-3 text-right font-semibold text-slate-200">{formatNumber(loc.realizado)}</td>
+                                  <td className={`py-2 px-3 text-right font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>{formatNumber(loc.realizado)}</td>
                                   <td className={`py-2 px-3 text-right font-bold font-mono ${loc.difFTE < 0 ? 'text-[#00CE7C]' : 'text-slate-400'}`}>
                                     {formatNumber(loc.difFTE)}
                                   </td>
-                                  <td className="py-2 px-3 text-right font-mono font-medium text-slate-300">
+                                  <td className={`py-2 px-3 text-right font-mono font-medium ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                                     {formatPercent(loc.pctDif)}
                                   </td>
                                 </tr>
@@ -853,12 +859,12 @@ export default function ComparativoExecutivoPage() {
                                 {isLocExpanded && loc.roles?.map((role: any, rIdx: number) => (
                                   <tr
                                     key={rIdx}
-                                    className="bg-[#070b14] text-slate-400 border-t border-slate-800/20 text-[10.5px] hover:bg-white/[0.02]"
+                                    className={`text-[10.5px] border-t transition-colors ${isDark ? "bg-[#070b14] text-slate-400 border-slate-800/20 hover:bg-white/[0.02]" : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50"}`}
                                   >
                                     <td className="py-1.5 px-3"></td>
                                     <td className="py-1.5 px-3 pl-14">
                                       <div className="flex items-center gap-1.5">
-                                        <span className="truncate max-w-[170px] text-slate-300 font-medium" title={role.roleTitle}>
+                                        <span className={`truncate max-w-[170px] font-medium ${isDark ? "text-slate-300" : "text-slate-800"}`} title={role.roleTitle}>
                                           {role.roleTitle}
                                         </span>
                                         {role.justification && (
@@ -889,9 +895,9 @@ export default function ComparativoExecutivoPage() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="py-1.5 px-3 text-right">{formatNumber(role.pa)}</td>
+                                    <td className={`py-1.5 px-3 text-right ${isDark ? "text-slate-400" : "text-slate-600"}`}>{formatNumber(role.pa)}</td>
                                     <td className="py-1.5 px-3 text-right text-slate-500">{formatNumber(role.forecast)}</td>
-                                    <td className="py-1.5 px-3 text-right text-slate-300 font-medium">{formatNumber(role.realizado)}</td>
+                                    <td className={`py-1.5 px-3 text-right font-medium ${isDark ? "text-slate-300" : "text-slate-800"}`}>{formatNumber(role.realizado)}</td>
                                     <td className={`py-1.5 px-3 text-right font-mono font-bold ${role.difFTE < 0 ? 'text-[#00CE7C]' : 'text-slate-400'}`}>
                                       {formatNumber(role.difFTE)}
                                     </td>
@@ -912,7 +918,7 @@ export default function ComparativoExecutivoPage() {
             </div>
 
             {/* Footer com indicação de Drill-down */}
-            <div className="px-4 py-2 bg-[#0b1222] border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <div className={`px-4 py-2 border-t text-[11px] flex items-center justify-between ${isDark ? "bg-[#0b1222] border-slate-800 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
               <span>Drill-down: contrato → localidade → cargo</span>
               <span className="text-[10px] text-slate-500">Clique para expandir</span>
             </div>
@@ -936,33 +942,33 @@ export default function ComparativoExecutivoPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Total PA (R$) */}
-              <div className="bg-[#0b1222] border border-blue-900/50 rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm">
+              <div className={`rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm border ${isDark ? "bg-[#0b1222] border-blue-900/50" : "bg-blue-50/60 border-blue-200"}`}>
                 <div className="w-2 h-2 rounded-full bg-[#1d4ed8]" />
                 <div>
                   <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">
                     Total PA (R$)
                   </div>
-                  <div className="text-xs md:text-sm font-black text-white font-mono">
+                  <div className={`text-xs md:text-sm font-black font-mono ${isDark ? "text-white" : "text-blue-900"}`}>
                     {isLoading ? "..." : formatMoney(financial.totalPaValor)}
                   </div>
                 </div>
               </div>
 
               {/* Total Real (R$) */}
-              <div className="bg-[#0b1222] border border-emerald-900/50 rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm">
+              <div className={`rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm border ${isDark ? "bg-[#0b1222] border-emerald-900/50" : "bg-emerald-50/60 border-emerald-200"}`}>
                 <div className="w-2 h-2 rounded-full bg-[#00CE7C]" />
                 <div>
                   <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
                     Total Real (R$)
                   </div>
-                  <div className="text-xs md:text-sm font-black text-white font-mono">
+                  <div className={`text-xs md:text-sm font-black font-mono ${isDark ? "text-white" : "text-emerald-900"}`}>
                     {isLoading ? "..." : formatMoney(financial.totalRealValor)}
                   </div>
                 </div>
               </div>
 
               {/* Diferença Financeira */}
-              <div className="bg-[#0b1222] border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
+              <div className={`rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm border ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100/80 border-slate-200"}`}>
                 <div>
                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                     Dif. Valor (R$)
@@ -976,14 +982,14 @@ export default function ComparativoExecutivoPage() {
               </div>
 
               {/* Toggle de Métrica: Quantidade (FTE) vs Valor (R$) */}
-              <div className="bg-[#0b1222] p-0.5 rounded-lg border border-slate-800 flex shrink-0">
+              <div className={`p-0.5 rounded-lg border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
                 <button
                   type="button"
                   onClick={() => setChartMetric("fte")}
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     chartMetric === "fte"
                       ? "bg-[#22c7ac] text-[#041A71] shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
                   Quantidade (FTE)
@@ -994,7 +1000,7 @@ export default function ComparativoExecutivoPage() {
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     chartMetric === "valor"
                       ? "bg-[#22c7ac] text-[#041A71] shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
                   Valor (R$)
@@ -1002,14 +1008,14 @@ export default function ComparativoExecutivoPage() {
               </div>
 
               {/* Toggle 6 vs 12 Meses */}
-              <div className="bg-[#0b1222] p-0.5 rounded-lg border border-slate-800 flex shrink-0">
+              <div className={`p-0.5 rounded-lg border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
                 <button
                   type="button"
                   onClick={() => setChartMonths(6)}
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     chartMonths === 6
                       ? 'bg-[#22c7ac] text-[#041A71] shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
                   6 Meses
@@ -1020,7 +1026,7 @@ export default function ComparativoExecutivoPage() {
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     chartMonths === 12
                       ? 'bg-[#22c7ac] text-[#041A71] shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
                   12 Meses
@@ -1036,12 +1042,12 @@ export default function ComparativoExecutivoPage() {
                 data={evolutionChart}
                 margin={{ top: 22, right: 10, left: -10, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false} />
                 <XAxis
                   dataKey="competence"
-                  stroke="#64748b"
-                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
-                  axisLine={{ stroke: '#334155' }}
+                  stroke={isDark ? "#64748b" : "#94a3b8"}
+                  tick={{ fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 600 }}
+                  axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
                   tickLine={false}
                 />
                 <YAxis
@@ -1304,33 +1310,33 @@ export default function ComparativoExecutivoPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/50 font-mono text-slate-300">
+              <tbody className={`divide-y font-mono ${isDark ? "divide-slate-800/50 text-slate-300" : "divide-slate-200 text-slate-700"}`}>
                 {/* Linhas FTE */}
-                <tr className={chartMetric === 'fte' ? 'bg-blue-950/20' : ''}>
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-blue-950/20' : 'bg-blue-50/60') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-blue-400 font-sans">PA (FTE)</td>
                   {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
                       {formatNumber(m.pa)}
                     </td>
                   ))}
                 </tr>
-                <tr className={chartMetric === 'fte' ? 'bg-indigo-950/20' : ''}>
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-indigo-950/20' : 'bg-indigo-50/60') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-indigo-400 font-sans">Forecast (FTE)</td>
                   {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
                       {formatNumber(m.forecast)}
                     </td>
                   ))}
                 </tr>
-                <tr className={chartMetric === 'fte' ? 'bg-emerald-950/20' : ''}>
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-emerald-950/20' : 'bg-emerald-50/60') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-emerald-400 font-sans">Realizado (FTE)</td>
                   {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
                       {m.hasRealizado ? formatNumber(m.realizado) : "-"}
                     </td>
                   ))}
                 </tr>
-                <tr className={chartMetric === 'fte' ? 'bg-slate-800/30' : ''}>
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-slate-800/30' : 'bg-slate-100/70') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. FTE</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 font-bold ${
@@ -1342,31 +1348,31 @@ export default function ComparativoExecutivoPage() {
                 </tr>
 
                 {/* Linhas Financeiras (R$) */}
-                <tr className={`border-t border-slate-800 ${chartMetric === 'valor' ? 'bg-blue-950/30 font-bold' : 'bg-white/[0.01]'}`}>
+                <tr className={`border-t ${isDark ? "border-slate-800" : "border-slate-200"} ${chartMetric === 'valor' ? (isDark ? 'bg-blue-950/30 font-bold' : 'bg-blue-50/70 font-semibold') : ''}`}>
                   <td className="py-1 px-2 text-left font-bold text-blue-300 font-sans">Total PA (R$)</td>
                   {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
                       {m.valPa > 0 ? formatMoney(m.valPa) : "-"}
                     </td>
                   ))}
                 </tr>
-                <tr className={chartMetric === 'valor' ? 'bg-indigo-950/30 font-bold' : 'bg-white/[0.01]'}>
+                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-indigo-950/30 font-bold' : 'bg-indigo-50/70 font-semibold') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-indigo-300 font-sans">Forecast (R$)</td>
                   {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
                       {m.valForecast > 0 ? formatMoney(m.valForecast) : "-"}
                     </td>
                   ))}
                 </tr>
-                <tr className={chartMetric === 'valor' ? 'bg-emerald-950/30 font-bold' : 'bg-white/[0.01]'}>
+                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-emerald-950/30 font-bold' : 'bg-emerald-50/70 font-semibold') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-emerald-300 font-sans">Total Real (R$)</td>
                   {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
                       {m.valReal > 0 ? formatMoney(m.valReal) : "-"}
                     </td>
                   ))}
                 </tr>
-                <tr className={chartMetric === 'valor' ? 'bg-slate-800/40 font-bold' : 'bg-white/[0.01]'}>
+                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-slate-800/40 font-bold' : 'bg-slate-100/80 font-semibold') : ''}>
                   <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. Valor (R$)</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 text-[10px] font-bold ${
@@ -1385,14 +1391,14 @@ export default function ComparativoExecutivoPage() {
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
           {/* 7.1 Contratos acima do PA & Distribuição */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
             <div>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                 <span>Contratos Acima do PA</span>
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
               </div>
               <div className="flex items-baseline gap-2 my-1">
-                <span className="text-2xl font-bold text-white font-mono">
+                <span className={`text-2xl font-bold font-mono ${isDark ? "text-white" : "text-slate-900"}`}>
                   {complementary.contractsAbovePA?.count || 0}
                 </span>
                 <span className="text-xs text-slate-400">
@@ -1405,7 +1411,7 @@ export default function ComparativoExecutivoPage() {
             </div>
 
             {/* Barra de Distribuição de Atenção da Carteira */}
-            <div className="mt-3 pt-3 border-t border-slate-800/80">
+            <div className={`mt-3 pt-3 border-t ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
               <div className="text-[11px] text-slate-400 mb-1.5 flex justify-between font-medium">
                 <span>Distribuição da Carteira:</span>
                 <span className="text-slate-300">
@@ -1433,20 +1439,20 @@ export default function ComparativoExecutivoPage() {
           </div>
 
           {/* 7.2 Excedente de FTE (Positivo vs Déficit) */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
             <div>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                 <span>Excedente vs Déficit de FTE</span>
                 <Users className="w-4 h-4 text-slate-400" />
               </div>
               <div className="grid grid-cols-2 gap-2 my-1">
-                <div className="bg-red-950/30 border border-red-900/30 rounded-lg p-2 text-center">
+                <div className={`rounded-lg p-2 text-center border ${isDark ? "bg-red-950/30 border-red-900/30" : "bg-red-50 border-red-200"}`}>
                   <div className="text-[10px] text-red-400 uppercase font-bold">Excesso Acima</div>
                   <div className="text-lg font-black text-red-400 font-mono">
                     +{formatNumber(complementary.excedenteFTE?.positiveSum || 0)}
                   </div>
                 </div>
-                <div className="bg-emerald-950/30 border border-emerald-900/30 rounded-lg p-2 text-center">
+                <div className={`rounded-lg p-2 text-center border ${isDark ? "bg-emerald-950/30 border-emerald-900/30" : "bg-emerald-50 border-emerald-200"}`}>
                   <div className="text-[10px] text-emerald-400 uppercase font-bold">Déficit Abaixo</div>
                   <div className="text-lg font-black text-[#00CE7C] font-mono">
                     {formatNumber(complementary.excedenteFTE?.deficitSum || 0)}
@@ -1454,7 +1460,7 @@ export default function ComparativoExecutivoPage() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <div className={`mt-2 pt-2 border-t ${isDark ? "border-slate-800/80" : "border-slate-200"} flex items-center justify-between text-[11px] ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               <span>Saldo líquido consolidado:</span>
               <span className={`font-mono font-bold ${
                 (complementary.excedenteFTE?.netBalance || 0) > 0 ? 'text-red-400' : 'text-[#00CE7C]'
@@ -1465,9 +1471,9 @@ export default function ComparativoExecutivoPage() {
           </div>
 
           {/* 7.3 Variação Entre Competências (MoM) */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
             <div>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                 <span>Variação Mensal (MoM)</span>
                 {complementary.monthlyVariation?.trend === "up" ? (
                   <ArrowUpRight className="w-4 h-4 text-red-400" />
@@ -1488,7 +1494,7 @@ export default function ComparativoExecutivoPage() {
                 </span>
               </div>
             </div>
-            <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <div className={`mt-2 pt-2 border-t ${isDark ? "border-slate-800/80" : "border-slate-200"} flex items-center justify-between text-[11px] ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               <span>Comparado ao mês anterior:</span>
               <span className="font-mono text-slate-200 font-medium">
                 {formatNumber(complementary.monthlyVariation?.currentReal)} vs {formatNumber(complementary.monthlyVariation?.previousReal)}
@@ -1497,14 +1503,14 @@ export default function ComparativoExecutivoPage() {
           </div>
 
           {/* 7.4 Status de Margem para Contratação */}
-          <div className="bg-[#111c33] rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
+          <div className={`rounded-xl p-4 border shadow-sm flex flex-col justify-between transition-all ${isDark ? "bg-[#111c33] border-slate-800 text-white shadow-lg" : "bg-white border-slate-200 text-slate-800 shadow-sm"}`}>
             <div>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <div className={`flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                 <span>Margem para Contratação</span>
                 <ShieldCheck className="w-4 h-4 text-[#22c7ac]" />
               </div>
               <div className="flex items-baseline gap-2 my-1">
-                <span className="text-2xl font-bold text-white font-mono">
+                <span className={`text-2xl font-bold font-mono ${isDark ? "text-white" : "text-slate-900"}`}>
                   {formatNumber(complementary.marginStatus?.capacidadeNovasVagas || 0)}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
@@ -1512,7 +1518,7 @@ export default function ComparativoExecutivoPage() {
                 </span>
               </div>
             </div>
-            <div className="mt-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+            <div className={`mt-2 pt-2 border-t ${isDark ? "border-slate-800/80" : "border-slate-200"} text-[11px] ${isDark ? "text-slate-400" : "text-slate-500"} space-y-1`}>
               <div className="flex justify-between">
                 <span>Contratos c/ margem segura:</span>
                 <span className="font-semibold text-emerald-400">{complementary.marginStatus?.contratosComMargem || 0}</span>
