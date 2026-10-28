@@ -507,8 +507,8 @@ export async function POST(req: Request) {
       `09/${yearInt}`, `10/${yearInt}`, `11/${yearInt}`, `12/${yearInt}`
     ];
 
-    // High performance SQL GROUP BY for historical evolution
-    const [paGrouped, fcGrouped, actGrouped] = await Promise.all([
+    // High performance SQL GROUP BY for historical evolution FTE + Financial records
+    const [paGrouped, fcGrouped, actGrouped, variacaoRecords] = await Promise.all([
       paVersion
         ? prisma.planRecord.groupBy({
             by: ['competence'],
@@ -537,8 +537,51 @@ export async function POST(req: Request) {
         },
         _sum: { fteValue: true },
         _count: true
+      }),
+      prisma.variacaoRecord.findMany({
+        where: { competence: { in: allMonths } },
+        include: { costCenter: { include: { operation: { include: { contract: true } } } } }
       })
     ]);
+
+    // Financial calculations by competence (matching dashboard rules)
+    const hasFilter = Object.keys(ccFilter).length > 0;
+    let validCCodes: string[] = [];
+    if (hasFilter) {
+      const validCCs = await prisma.costCenter.findMany({ where: ccFilter, select: { code: true } });
+      validCCodes = validCCs.map(c => c.code);
+    }
+
+    const financialByComp = new Map<string, { valPa: number; valReal: number }>();
+    allMonths.forEach(m => financialByComp.set(m, { valPa: 0, valReal: 0 }));
+
+    for (const record of variacaoRecords) {
+      let prefix = "";
+      if (record.contractName) {
+        prefix = record.contractName.split('-')[0].replace(/\./g, '').trim().substring(0, 6);
+      }
+      if (!prefix && record.costCenter) {
+        prefix = record.costCenter.code.substring(0, 6);
+      }
+      if (!prefix) continue;
+
+      if (hasFilter && !validCCodes.some(code => code.startsWith(prefix))) {
+        continue;
+      }
+
+      const comp = record.competence?.trim();
+      if (comp && financialByComp.has(comp)) {
+        const item = financialByComp.get(comp)!;
+        item.valPa += Number(record.valPa) || 0;
+        item.valReal += Number(record.valReal) || 0;
+      }
+    }
+
+    const selFin = financialByComp.get(selectedCompetence) || { valPa: 0, valReal: 0 };
+    const totalPaValor = selFin.valPa;
+    const totalRealValor = selFin.valReal;
+    const difValor = totalRealValor - totalPaValor;
+    const pctDifValor = totalPaValor !== 0 ? (difValor / totalPaValor) * 100 : 0;
 
     const compSumsMap = new Map<string, { pa: number; forecast: number; realizado: number }>();
     allMonths.forEach(m => compSumsMap.set(m, { pa: 0, forecast: 0, realizado: 0 }));
@@ -552,7 +595,6 @@ export async function POST(req: Request) {
     for (const g of fcGrouped) {
       const comp = g.competence?.trim();
       if (!comp || !compSumsMap.has(comp)) continue;
-      // If adjustedFte is present in the sum, prefer adjusted, else planned
       const fcVal = g._sum.adjustedFte !== null && g._sum.adjustedFte !== undefined
         ? g._sum.adjustedFte
         : (g._sum.plannedFte || 0);
@@ -567,8 +609,12 @@ export async function POST(req: Request) {
 
     let evolutionChart = allMonths.map(comp => {
       const item = compSumsMap.get(comp)!;
+      const finItem = financialByComp.get(comp) || { valPa: 0, valReal: 0 };
       const difFTE = item.realizado > 0 ? item.realizado - item.pa : null;
       const pctDif = item.realizado > 0 && item.pa > 0 ? ((item.realizado - item.pa) / item.pa) * 100 : null;
+      const difVal = finItem.valReal > 0 ? finItem.valReal - finItem.valPa : null;
+      const pctVal = finItem.valPa > 0 && finItem.valReal > 0 ? ((finItem.valReal - finItem.valPa) / finItem.valPa) * 100 : null;
+
       return {
         competence: comp,
         pa: Math.round(item.pa),
@@ -576,7 +622,11 @@ export async function POST(req: Request) {
         realizado: Math.round(item.realizado),
         difFTE: difFTE !== null ? Math.round(difFTE) : null,
         pctDif: pctDif !== null ? Math.round(pctDif * 10) / 10 : null,
-        hasRealizado: item.realizado > 0
+        hasRealizado: item.realizado > 0,
+        valPa: finItem.valPa,
+        valReal: finItem.valReal,
+        difValor: difVal,
+        pctDifValor: pctVal
       };
     });
 
@@ -602,6 +652,12 @@ export async function POST(req: Request) {
         difForecast: Math.round(difForecast),
         pctPA: pctPA !== null ? Math.round(pctPA * 100) / 100 : null,
         pctForecast: pctForecast !== null ? Math.round(pctForecast * 100) / 100 : null
+      },
+      financial: {
+        totalPaValor: Math.round(totalPaValor * 100) / 100,
+        totalRealValor: Math.round(totalRealValor * 100) / 100,
+        difValor: Math.round(difValor * 100) / 100,
+        pctDifValor: Math.round(pctDifValor * 100) / 100
       },
       topMaioresDesvios,
       topMenoresDesvios,

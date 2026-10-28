@@ -38,13 +38,19 @@ import {
   Tooltip as RechartsTooltip,
   CartesianGrid,
   Legend,
-  Cell
+  Cell,
+  LabelList
 } from "recharts";
 
 // Format numbers in pt-BR
 const formatNumber = (val: number | undefined | null) => {
   if (val === undefined || val === null || isNaN(val)) return "0";
   return new Intl.NumberFormat("pt-BR").format(Math.round(val));
+};
+
+const formatMoney = (val: number | undefined | null) => {
+  if (val === undefined || val === null || isNaN(val) || val === 0) return "R$ 0,00";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 };
 
 const formatPercent = (val: number | undefined | null, forceSign = true) => {
@@ -91,6 +97,17 @@ export default function ComparativoExecutivoPage() {
     difForecast: 0,
     pctPA: 0,
     pctForecast: 0
+  });
+  const [financial, setFinancial] = useState<{
+    totalPaValor: number;
+    totalRealValor: number;
+    difValor: number;
+    pctDifValor: number;
+  }>({
+    totalPaValor: 0,
+    totalRealValor: 0,
+    difValor: 0,
+    pctDifValor: 0
   });
   const [topMaiores, setTopMaiores] = useState<any[]>([]);
   const [topMenores, setTopMenores] = useState<any[]>([]);
@@ -159,6 +176,7 @@ export default function ComparativoExecutivoPage() {
       .then((data) => {
         if (!data.error) {
           setCards(data.cards || {});
+          setFinancial(data.financial || { totalPaValor: 0, totalRealValor: 0, difValor: 0, pctDifValor: 0 });
           setTopMaiores(data.topMaioresDesvios || []);
           setTopMenores(data.topMenoresDesvios || []);
           setEvolutionChart(data.evolutionChart || []);
@@ -881,23 +899,63 @@ export default function ComparativoExecutivoPage() {
 
         </section>
 
-        {/* 4. Gráfico Comparativo — Evolução Histórica (PA x Realizado) */}
+        {/* 4. Gráfico Comparativo — Evolução Histórica (PA x Forecast x Realizado) */}
         <section className="bg-[#111c33] rounded-xl border border-slate-800/90 shadow-xl p-5 flex flex-col">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          {/* Header do Card com Totais Financeiros (R$) e Controles */}
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
             <div>
               <h3 className="font-extrabold text-base text-white tracking-wide uppercase flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#22c7ac]" />
-                Evolução histórica | PA x Realizado
+                Evolução histórica | PA x Forecast x Realizado
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Comparativo mensal de efetivo planejado vs realizado (competências cronológicas)
+                Comparativo mensal de efetivo planejado, baseline ajustado e realizado (competências cronológicas)
               </p>
             </div>
 
-            {/* Toggle 6 vs 12 Meses */}
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-xs text-slate-400 font-medium mr-1">Exibição:</span>
-              <div className="bg-[#0b1222] p-0.5 rounded-lg border border-slate-800 flex">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Total PA (R$) */}
+              <div className="bg-[#0b1222] border border-blue-900/50 rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-[#1d4ed8]" />
+                <div>
+                  <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">
+                    Total PA (R$)
+                  </div>
+                  <div className="text-xs md:text-sm font-black text-white font-mono">
+                    {isLoading ? "..." : formatMoney(financial.totalPaValor)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Real (R$) */}
+              <div className="bg-[#0b1222] border border-emerald-900/50 rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-[#00CE7C]" />
+                <div>
+                  <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                    Total Real (R$)
+                  </div>
+                  <div className="text-xs md:text-sm font-black text-white font-mono">
+                    {isLoading ? "..." : formatMoney(financial.totalRealValor)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Diferença Financeira */}
+              <div className="bg-[#0b1222] border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm">
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Dif. Valor (R$)
+                  </div>
+                  <div className={`text-xs md:text-sm font-black font-mono ${
+                    financial.difValor < 0 ? 'text-[#00CE7C]' : financial.difValor > 0 ? 'text-red-400' : 'text-slate-300'
+                  }`}>
+                    {isLoading ? "..." : `${financial.difValor > 0 ? '+' : ''}${formatMoney(financial.difValor)} (${financial.pctDifValor > 0 ? '+' : ''}${financial.pctDifValor.toFixed(1)}%)`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Toggle 6 vs 12 Meses */}
+              <div className="bg-[#0b1222] p-0.5 rounded-lg border border-slate-800 flex shrink-0">
                 <button
                   type="button"
                   onClick={() => setChartMonths(6)}
@@ -924,18 +982,18 @@ export default function ComparativoExecutivoPage() {
             </div>
           </div>
 
-          {/* Gráfico Recharts */}
-          <div className="h-64 sm:h-72 w-full mt-2">
+          {/* Gráfico Recharts com 3 Barras e Números nos Topos */}
+          <div className="h-72 sm:h-80 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={evolutionChart}
-                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                margin={{ top: 22, right: 10, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis
                   dataKey="competence"
                   stroke="#64748b"
-                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
+                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
                   axisLine={{ stroke: '#334155' }}
                   tickLine={false}
                 />
@@ -951,42 +1009,75 @@ export default function ComparativoExecutivoPage() {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       const hasReal = data.hasRealizado;
+                      const hasFin = data.valPa > 0 || data.valReal > 0;
                       return (
-                        <div className="bg-[#0d1629] border border-slate-700/80 rounded-xl p-3 shadow-2xl text-xs space-y-1.5 min-w-[200px]">
-                          <div className="font-bold text-white border-b border-slate-700/60 pb-1 flex items-center justify-between">
-                            <span>Competência {label}</span>
+                        <div className="bg-[#0d1629] border border-slate-700/80 rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[240px]">
+                          <div className="font-bold text-white border-b border-slate-700/60 pb-1.5 flex items-center justify-between">
+                            <span className="text-sm">Competência {label}</span>
                             {label === selectedCompetence && (
-                              <span className="text-[10px] bg-[#22c7ac]/20 text-[#22c7ac] px-1.5 py-0.2 rounded font-bold">
-                                Selecionada
+                              <span className="text-[10px] bg-[#22c7ac]/20 text-[#22c7ac] px-2 py-0.5 rounded font-bold">
+                                Ativa
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center justify-between text-slate-300">
-                            <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
-                              <span className="w-2 h-2 rounded-full bg-[#2563eb]" /> Total PA:
-                            </span>
-                            <span className="font-mono font-bold text-white">{formatNumber(data.pa)} FTEs</span>
-                          </div>
-                          <div className="flex items-center justify-between text-slate-300">
-                            <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
-                              <span className="w-2 h-2 rounded-full bg-indigo-400" /> Forecast:
-                            </span>
-                            <span className="font-mono font-bold text-white">{formatNumber(data.forecast)} FTEs</span>
-                          </div>
-                          <div className="flex items-center justify-between text-slate-300">
-                            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                              <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
-                            </span>
-                            <span className="font-mono font-bold text-white">
-                              {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
-                            </span>
-                          </div>
-                          {hasReal && (
-                            <div className="pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px]">
-                              <span className="font-semibold text-slate-400">Desvio Real x PA:</span>
-                              <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
-                                {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
+
+                          {/* Seção FTE */}
+                          <div className="space-y-1">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                              Quantitativo de FTE
+                            </div>
+                            <div className="flex items-center justify-between text-slate-300">
+                              <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
                               </span>
+                              <span className="font-mono font-bold text-white">{formatNumber(data.pa)} FTEs</span>
+                            </div>
+                            <div className="flex items-center justify-between text-slate-300">
+                              <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast:
+                              </span>
+                              <span className="font-mono font-bold text-white">{formatNumber(data.forecast)} FTEs</span>
+                            </div>
+                            <div className="flex items-center justify-between text-slate-300">
+                              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
+                              </span>
+                              <span className="font-mono font-bold text-white">
+                                {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
+                              </span>
+                            </div>
+                            {hasReal && (
+                              <div className="pt-1 flex items-center justify-between text-[11px] font-semibold border-t border-slate-800">
+                                <span className="text-slate-400">Desvio FTE (Real - PA):</span>
+                                <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
+                                  {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Seção Financeira (R$) */}
+                          {hasFin && (
+                            <div className="pt-2 border-t border-slate-700/60 space-y-1">
+                              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                Valores Financeiros (R$)
+                              </div>
+                              <div className="flex items-center justify-between text-slate-300">
+                                <span className="text-blue-400 font-semibold">PA (R$):</span>
+                                <span className="font-mono font-bold text-white">{formatMoney(data.valPa)}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-300">
+                                <span className="text-emerald-400 font-semibold">Real (R$):</span>
+                                <span className="font-mono font-bold text-white">{formatMoney(data.valReal)}</span>
+                              </div>
+                              {data.valReal > 0 && data.valPa > 0 && (
+                                <div className="flex items-center justify-between text-[11px] font-semibold pt-0.5 border-t border-slate-800">
+                                  <span className="text-slate-400">Dif. Valor:</span>
+                                  <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-300'}`}>
+                                    {data.difValor > 0 ? '+' : ''}{formatMoney(data.difValor)}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -995,13 +1086,23 @@ export default function ComparativoExecutivoPage() {
                     return null;
                   }}
                 />
+
+                {/* Barra 1: PA (Planejado) */}
                 <Bar
                   dataKey="pa"
-                  name="PA (Planejado)"
+                  name="PA"
                   fill="#1d4ed8"
-                  radius={[4, 4, 0, 0]}
-                  barSize={18}
+                  radius={[3, 3, 0, 0]}
+                  barSize={chartMonths === 6 ? 24 : 13}
                 >
+                  <LabelList
+                    dataKey="pa"
+                    position="top"
+                    fill="#93c5fd"
+                    fontSize={chartMonths === 6 ? 9.5 : 7.5}
+                    fontWeight={700}
+                    formatter={(v: any) => v > 0 ? v : ''}
+                  />
                   {evolutionChart.map((entry, index) => (
                     <Cell
                       key={`pa-${index}`}
@@ -1009,18 +1110,52 @@ export default function ComparativoExecutivoPage() {
                     />
                   ))}
                 </Bar>
+
+                {/* Barra 2: Forecast (Baseline Ajustado) */}
+                <Bar
+                  dataKey="forecast"
+                  name="Forecast"
+                  fill="#6366f1"
+                  radius={[3, 3, 0, 0]}
+                  barSize={chartMonths === 6 ? 24 : 13}
+                >
+                  <LabelList
+                    dataKey="forecast"
+                    position="top"
+                    fill="#c7d2fe"
+                    fontSize={chartMonths === 6 ? 9.5 : 7.5}
+                    fontWeight={700}
+                    formatter={(v: any) => v > 0 ? v : ''}
+                  />
+                  {evolutionChart.map((entry, index) => (
+                    <Cell
+                      key={`fc-${index}`}
+                      fill={entry.competence === selectedCompetence ? "#818cf8" : "#6366f1"}
+                    />
+                  ))}
+                </Bar>
+
+                {/* Barra 3: Realizado */}
                 <Bar
                   dataKey="realizado"
                   name="Realizado"
                   fill="#00CE7C"
-                  radius={[4, 4, 0, 0]}
-                  barSize={18}
+                  radius={[3, 3, 0, 0]}
+                  barSize={chartMonths === 6 ? 24 : 13}
                 >
+                  <LabelList
+                    dataKey="realizado"
+                    position="top"
+                    fill="#6ee7b7"
+                    fontSize={chartMonths === 6 ? 9.5 : 7.5}
+                    fontWeight={700}
+                    formatter={(v: any) => v > 0 ? v : ''}
+                  />
                   {evolutionChart.map((entry, index) => (
                     <Cell
                       key={`real-${index}`}
                       fill={entry.competence === selectedCompetence ? "#22c7ac" : "#00CE7C"}
-                      fillOpacity={entry.hasRealizado ? 1 : 0.2}
+                      fillOpacity={entry.hasRealizado ? 1 : 0.25}
                     />
                   ))}
                 </Bar>
@@ -1028,19 +1163,98 @@ export default function ComparativoExecutivoPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Legenda Explicativa */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-3 border-t border-slate-800 text-xs text-slate-300 font-medium">
+          {/* Legenda com as Três Barras */}
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-3 mt-2 border-t border-slate-800 text-xs text-slate-300 font-medium">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded bg-[#1d4ed8]" />
-              <span>PA (Planejamento Aprovado)</span>
+              <span className="font-semibold text-white">PA (Planejamento Aprovado)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-[#6366f1]" />
+              <span className="font-semibold text-white">Forecast (Baseline Ajustado)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded bg-[#00CE7C]" />
-              <span>Realizado (Efetivo Efetivo)</span>
+              <span className="font-semibold text-white">Realizado (Efetivo Efetivo)</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-500">
-              <span>• Colunas com tom mais brilhante indicam a competência ativamente selecionada ({selectedCompetence})</span>
+            <div className="text-slate-500 text-[11px]">
+              <span>• Competência selecionada ({selectedCompetence}) em tom destacado</span>
             </div>
+          </div>
+
+          {/* Régua Mensal Consolidada de Números (FTEs e R$) */}
+          <div className="mt-4 pt-3 border-t border-slate-800/80 overflow-x-auto">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <span>Acompanhamento Numérico Consolidado por Competência</span>
+              <span className="text-slate-500 font-normal">Valores de FTE e Financeiros (R$)</span>
+            </div>
+            <table className="w-full text-[11px] text-center border-collapse">
+              <thead>
+                <tr className="bg-[#0b1222] text-slate-400 font-bold border-b border-slate-800">
+                  <th className="py-1.5 px-2 text-left">Métrica</th>
+                  {evolutionChart.map((m) => (
+                    <th
+                      key={m.competence}
+                      className={`py-1.5 px-2 ${m.competence === selectedCompetence ? 'text-[#22c7ac] font-black bg-[#22c7ac]/10' : ''}`}
+                    >
+                      {m.competence}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50 font-mono text-slate-300">
+                <tr>
+                  <td className="py-1 px-2 text-left font-bold text-blue-400 font-sans">PA (FTE)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                      {formatNumber(m.pa)}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="py-1 px-2 text-left font-bold text-indigo-400 font-sans">Forecast (FTE)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                      {formatNumber(m.forecast)}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="py-1 px-2 text-left font-bold text-emerald-400 font-sans">Realizado (FTE)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                      {m.hasRealizado ? formatNumber(m.realizado) : "-"}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. FTE</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 font-bold ${
+                      m.hasRealizado && m.difFTE !== null ? (m.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]') : 'text-slate-500'
+                    } ${m.competence === selectedCompetence ? 'bg-[#22c7ac]/5' : ''}`}>
+                      {m.hasRealizado && m.difFTE !== null ? (m.difFTE > 0 ? `+${m.difFTE}` : m.difFTE) : "-"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-t border-slate-800 bg-white/[0.01]">
+                  <td className="py-1 px-2 text-left font-bold text-blue-300 font-sans">Total PA (R$)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                      {m.valPa > 0 ? formatMoney(m.valPa) : "-"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="bg-white/[0.01]">
+                  <td className="py-1 px-2 text-left font-bold text-emerald-300 font-sans">Total Real (R$)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                      {m.valReal > 0 ? formatMoney(m.valReal) : "-"}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
