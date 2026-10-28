@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
@@ -10,8 +10,11 @@ import {
 import GovernanceFormModal from "@/components/governanca/GovernanceFormModal";
 import GovernanceDetailModal from "@/components/governanca/GovernanceDetailModal";
 import GovernanceBulkJustifyModal from "@/components/governanca/GovernanceBulkJustifyModal";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function GovernancaContent() {
+  const { isDark } = useTheme();
   const searchParams = useSearchParams();
   const paramContract = searchParams.get("contract");
   const paramCompetence = searchParams.get("competence");
@@ -174,6 +177,7 @@ function GovernancaContent() {
           <p className="text-slate-400 mt-1">Repositório central e trilha oficial de auditoria de alterações do Forecast</p>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle variant="pill" />
           <button 
             onClick={() => {
               setEditRecord(null);

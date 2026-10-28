@@ -41,6 +41,8 @@ import {
   Cell,
   LabelList
 } from "recharts";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Format numbers in pt-BR
 const formatNumber = (val: number | undefined | null) => {
@@ -51,6 +53,19 @@ const formatNumber = (val: number | undefined | null) => {
 const formatMoney = (val: number | undefined | null) => {
   if (val === undefined || val === null || isNaN(val) || val === 0) return "R$ 0,00";
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+};
+
+const formatMoneyCompact = (val: number | undefined | null) => {
+  if (val === undefined || val === null || isNaN(val) || val <= 0) return "";
+  if (val >= 1_000_000) {
+    const m = val / 1_000_000;
+    return `R$ ${m.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}M`;
+  }
+  if (val >= 1_000) {
+    const k = val / 1_000;
+    return `R$ ${k.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}k`;
+  }
+  return formatMoney(val);
 };
 
 const formatPercent = (val: number | undefined | null, forceSign = true) => {
@@ -65,6 +80,7 @@ const formatPercent = (val: number | undefined | null, forceSign = true) => {
 };
 
 export default function ComparativoExecutivoPage() {
+  const { isDark } = useTheme();
   // Filter Options
   const [filterOptions, setFilterOptions] = useState<{
     competences: string[];
@@ -87,6 +103,7 @@ export default function ComparativoExecutivoPage() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [chartMonths, setChartMonths] = useState<6 | 12>(12);
+  const [chartMetric, setChartMetric] = useState<"fte" | "valor">("fte");
 
   // Data States
   const [cards, setCards] = useState<any>({
@@ -100,11 +117,13 @@ export default function ComparativoExecutivoPage() {
   });
   const [financial, setFinancial] = useState<{
     totalPaValor: number;
+    totalForecastValor?: number;
     totalRealValor: number;
     difValor: number;
     pctDifValor: number;
   }>({
     totalPaValor: 0,
+    totalForecastValor: 0,
     totalRealValor: 0,
     difValor: 0,
     pctDifValor: 0
@@ -254,7 +273,7 @@ export default function ComparativoExecutivoPage() {
   };
 
   return (
-    <div className={`min-h-screen bg-[#0a0f1d] text-white flex flex-col font-sans transition-all duration-300 ${isFullscreen ? 'p-3 md:p-6' : 'p-4 md:p-8'}`}>
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${isDark ? 'bg-[#0a0f1d] text-white' : 'bg-slate-50 text-slate-800'} ${isFullscreen ? 'p-3 md:p-6' : 'p-4 md:p-8'}`}>
       
       {/* 1. Header Executivo e Filtros */}
       <header className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pb-5 border-b border-slate-800/80 shrink-0">
@@ -304,7 +323,7 @@ export default function ComparativoExecutivoPage() {
             options={(filterOptions.contracts || []).map((c) => ({ label: c, value: c }))}
             selected={selectedContracts}
             onChange={setSelectedContracts}
-            theme="dark"
+            theme={isDark ? "dark" : "light"}
           />
 
           {/* Localidade MultiSelect */}
@@ -314,7 +333,7 @@ export default function ComparativoExecutivoPage() {
             options={(filterOptions.locations || []).map((l) => ({ label: l, value: l }))}
             selected={selectedLocations}
             onChange={setSelectedLocations}
-            theme="dark"
+            theme={isDark ? "dark" : "light"}
           />
 
           {/* Cargo MultiSelect */}
@@ -324,7 +343,7 @@ export default function ComparativoExecutivoPage() {
             options={(filterOptions.roles || []).map((r) => ({ label: r, value: r }))}
             selected={selectedRoles}
             onChange={setSelectedRoles}
-            theme="dark"
+            theme={isDark ? "dark" : "light"}
           />
 
           {/* Actions: Limpar Filtros & Tela Cheia */}
@@ -348,6 +367,8 @@ export default function ComparativoExecutivoPage() {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#22c7ac]' : ''}`} />
             </button>
+
+            <ThemeToggle variant="pill" className="h-[38px]" />
 
             <button
               onClick={toggleFullscreen}
@@ -954,6 +975,32 @@ export default function ComparativoExecutivoPage() {
                 </div>
               </div>
 
+              {/* Toggle de Métrica: Quantidade (FTE) vs Valor (R$) */}
+              <div className="bg-[#0b1222] p-0.5 rounded-lg border border-slate-800 flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setChartMetric("fte")}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    chartMetric === "fte"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Quantidade (FTE)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartMetric("valor")}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    chartMetric === "valor"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Valor (R$)
+                </button>
+              </div>
+
               {/* Toggle 6 vs 12 Meses */}
               <div className="bg-[#0b1222] p-0.5 rounded-lg border border-slate-800 flex shrink-0">
                 <button
@@ -982,7 +1029,7 @@ export default function ComparativoExecutivoPage() {
             </div>
           </div>
 
-          {/* Gráfico Recharts com 3 Barras e Números nos Topos */}
+          {/* Gráfico Recharts com 3 Barras Alternáveis e Rótulos Numéricos */}
           <div className="h-72 sm:h-80 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
@@ -1003,6 +1050,7 @@ export default function ComparativoExecutivoPage() {
                   axisLine={{ stroke: '#334155' }}
                   tickLine={false}
                   domain={[0, 'auto']}
+                  tickFormatter={(v: any) => chartMetric === 'valor' ? formatMoneyCompact(v) : formatNumber(v)}
                 />
                 <RechartsTooltip
                   content={({ active, payload, label }) => {
@@ -1011,7 +1059,7 @@ export default function ComparativoExecutivoPage() {
                       const hasReal = data.hasRealizado;
                       const hasFin = data.valPa > 0 || data.valReal > 0;
                       return (
-                        <div className="bg-[#0d1629] border border-slate-700/80 rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[240px]">
+                        <div className="bg-[#0d1629] border border-slate-700/80 rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[250px]">
                           <div className="font-bold text-white border-b border-slate-700/60 pb-1.5 flex items-center justify-between">
                             <span className="text-sm">Competência {label}</span>
                             {label === selectedCompetence && (
@@ -1021,64 +1069,110 @@ export default function ComparativoExecutivoPage() {
                             )}
                           </div>
 
-                          {/* Seção FTE */}
-                          <div className="space-y-1">
-                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                              Quantitativo de FTE
-                            </div>
-                            <div className="flex items-center justify-between text-slate-300">
-                              <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
-                                <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
-                              </span>
-                              <span className="font-mono font-bold text-white">{formatNumber(data.pa)} FTEs</span>
-                            </div>
-                            <div className="flex items-center justify-between text-slate-300">
-                              <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
-                                <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast:
-                              </span>
-                              <span className="font-mono font-bold text-white">{formatNumber(data.forecast)} FTEs</span>
-                            </div>
-                            <div className="flex items-center justify-between text-slate-300">
-                              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                                <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
-                              </span>
-                              <span className="font-mono font-bold text-white">
-                                {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
-                              </span>
-                            </div>
-                            {hasReal && (
-                              <div className="pt-1 flex items-center justify-between text-[11px] font-semibold border-t border-slate-800">
-                                <span className="text-slate-400">Desvio FTE (Real - PA):</span>
-                                <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
-                                  {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Seção Financeira (R$) */}
-                          {hasFin && (
-                            <div className="pt-2 border-t border-slate-700/60 space-y-1">
-                              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                Valores Financeiros (R$)
-                              </div>
-                              <div className="flex items-center justify-between text-slate-300">
-                                <span className="text-blue-400 font-semibold">PA (R$):</span>
-                                <span className="font-mono font-bold text-white">{formatMoney(data.valPa)}</span>
-                              </div>
-                              <div className="flex items-center justify-between text-slate-300">
-                                <span className="text-emerald-400 font-semibold">Real (R$):</span>
-                                <span className="font-mono font-bold text-white">{formatMoney(data.valReal)}</span>
-                              </div>
-                              {data.valReal > 0 && data.valPa > 0 && (
-                                <div className="flex items-center justify-between text-[11px] font-semibold pt-0.5 border-t border-slate-800">
-                                  <span className="text-slate-400">Dif. Valor:</span>
-                                  <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-300'}`}>
-                                    {data.difValor > 0 ? '+' : ''}{formatMoney(data.difValor)}
+                          {chartMetric === 'valor' ? (
+                            <>
+                              {/* Seção Financeira (Prioritária no Modo Valor) */}
+                              <div className="space-y-1">
+                                <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
+                                  Valores Financeiros (R$)
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                                    <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
+                                  </span>
+                                  <span className="font-mono font-bold text-white">{formatMoney(data.valPa)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
+                                    <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast (R$):
+                                  </span>
+                                  <span className="font-mono font-bold text-white">{formatMoney(data.valForecast)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                                    <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Total Real:
+                                  </span>
+                                  <span className="font-mono font-bold text-white">
+                                    {hasReal ? formatMoney(data.valReal) : "Não realizado"}
                                   </span>
                                 </div>
+                                {data.valReal > 0 && data.valPa > 0 && (
+                                  <div className="flex items-center justify-between text-[11px] font-semibold pt-1 border-t border-slate-800">
+                                    <span className="text-slate-400">Dif. Valor (Real - PA):</span>
+                                    <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-300'}`}>
+                                      {data.difValor > 0 ? '+' : ''}{formatMoney(data.difValor)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Seção FTE (Secundária) */}
+                              <div className="pt-2 border-t border-slate-700/60 space-y-1">
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                  Quantitativo de FTE
+                                </div>
+                                <div className="flex items-center justify-between text-slate-400">
+                                  <span>PA / Forecast / Real:</span>
+                                  <span className="font-mono font-semibold text-white">
+                                    {formatNumber(data.pa)} / {formatNumber(data.forecast)} / {hasReal ? formatNumber(data.realizado) : "-"}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* Seção FTE (Prioritária no Modo Quantidade) */}
+                              <div className="space-y-1">
+                                <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
+                                  Quantitativo de FTE
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                                    <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
+                                  </span>
+                                  <span className="font-mono font-bold text-white">{formatNumber(data.pa)} FTEs</span>
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
+                                    <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast:
+                                  </span>
+                                  <span className="font-mono font-bold text-white">{formatNumber(data.forecast)} FTEs</span>
+                                </div>
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                                    <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
+                                  </span>
+                                  <span className="font-mono font-bold text-white">
+                                    {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
+                                  </span>
+                                </div>
+                                {hasReal && (
+                                  <div className="pt-1 flex items-center justify-between text-[11px] font-semibold border-t border-slate-800">
+                                    <span className="text-slate-400">Desvio FTE (Real - PA):</span>
+                                    <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
+                                      {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Seção Financeira (Secundária) */}
+                              {hasFin && (
+                                <div className="pt-2 border-t border-slate-700/60 space-y-1">
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                    Valores Financeiros (R$)
+                                  </div>
+                                  <div className="flex items-center justify-between text-slate-300">
+                                    <span className="text-blue-400 font-semibold">PA (R$):</span>
+                                    <span className="font-mono font-bold text-white">{formatMoney(data.valPa)}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-slate-300">
+                                    <span className="text-emerald-400 font-semibold">Real (R$):</span>
+                                    <span className="font-mono font-bold text-white">{formatMoney(data.valReal)}</span>
+                                  </div>
+                                </div>
                               )}
-                            </div>
+                            </>
                           )}
                         </div>
                       );
@@ -1087,21 +1181,21 @@ export default function ComparativoExecutivoPage() {
                   }}
                 />
 
-                {/* Barra 1: PA (Planejado) */}
+                {/* Barra 1: PA */}
                 <Bar
-                  dataKey="pa"
-                  name="PA"
+                  dataKey={chartMetric === "valor" ? "valPa" : "pa"}
+                  name={chartMetric === "valor" ? "PA (R$)" : "PA"}
                   fill="#1d4ed8"
                   radius={[3, 3, 0, 0]}
                   barSize={chartMonths === 6 ? 24 : 13}
                 >
                   <LabelList
-                    dataKey="pa"
+                    dataKey={chartMetric === "valor" ? "valPa" : "pa"}
                     position="top"
                     fill="#93c5fd"
                     fontSize={chartMonths === 6 ? 9.5 : 7.5}
                     fontWeight={700}
-                    formatter={(v: any) => v > 0 ? v : ''}
+                    formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
                   />
                   {evolutionChart.map((entry, index) => (
                     <Cell
@@ -1111,21 +1205,21 @@ export default function ComparativoExecutivoPage() {
                   ))}
                 </Bar>
 
-                {/* Barra 2: Forecast (Baseline Ajustado) */}
+                {/* Barra 2: Forecast */}
                 <Bar
-                  dataKey="forecast"
-                  name="Forecast"
+                  dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
+                  name={chartMetric === "valor" ? "Forecast (R$)" : "Forecast"}
                   fill="#6366f1"
                   radius={[3, 3, 0, 0]}
                   barSize={chartMonths === 6 ? 24 : 13}
                 >
                   <LabelList
-                    dataKey="forecast"
+                    dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
                     position="top"
                     fill="#c7d2fe"
                     fontSize={chartMonths === 6 ? 9.5 : 7.5}
                     fontWeight={700}
-                    formatter={(v: any) => v > 0 ? v : ''}
+                    formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
                   />
                   {evolutionChart.map((entry, index) => (
                     <Cell
@@ -1137,19 +1231,19 @@ export default function ComparativoExecutivoPage() {
 
                 {/* Barra 3: Realizado */}
                 <Bar
-                  dataKey="realizado"
-                  name="Realizado"
+                  dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
+                  name={chartMetric === "valor" ? "Realizado (R$)" : "Realizado"}
                   fill="#00CE7C"
                   radius={[3, 3, 0, 0]}
                   barSize={chartMonths === 6 ? 24 : 13}
                 >
                   <LabelList
-                    dataKey="realizado"
+                    dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
                     position="top"
                     fill="#6ee7b7"
                     fontSize={chartMonths === 6 ? 9.5 : 7.5}
                     fontWeight={700}
-                    formatter={(v: any) => v > 0 ? v : ''}
+                    formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
                   />
                   {evolutionChart.map((entry, index) => (
                     <Cell
@@ -1167,15 +1261,21 @@ export default function ComparativoExecutivoPage() {
           <div className="flex flex-wrap items-center justify-center gap-6 pt-3 mt-2 border-t border-slate-800 text-xs text-slate-300 font-medium">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded bg-[#1d4ed8]" />
-              <span className="font-semibold text-white">PA (Planejamento Aprovado)</span>
+              <span className="font-semibold text-white">
+                {chartMetric === "valor" ? "PA em R$ (Planejamento Aprovado)" : "PA (Planejamento Aprovado)"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded bg-[#6366f1]" />
-              <span className="font-semibold text-white">Forecast (Baseline Ajustado)</span>
+              <span className="font-semibold text-white">
+                {chartMetric === "valor" ? "Forecast em R$ (Baseline Ajustado)" : "Forecast (Baseline Ajustado)"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded bg-[#00CE7C]" />
-              <span className="font-semibold text-white">Realizado (Efetivo Efetivo)</span>
+              <span className="font-semibold text-white">
+                {chartMetric === "valor" ? "Realizado em R$ (Valor Efetivo)" : "Realizado (Efetivo Ativo)"}
+              </span>
             </div>
             <div className="text-slate-500 text-[11px]">
               <span>• Competência selecionada ({selectedCompetence}) em tom destacado</span>
@@ -1186,7 +1286,9 @@ export default function ComparativoExecutivoPage() {
           <div className="mt-4 pt-3 border-t border-slate-800/80 overflow-x-auto">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
               <span>Acompanhamento Numérico Consolidado por Competência</span>
-              <span className="text-slate-500 font-normal">Valores de FTE e Financeiros (R$)</span>
+              <span className="text-slate-500 font-normal">
+                Modo ativo: <strong className="text-[#22c7ac]">{chartMetric === 'valor' ? 'Valores em R$' : 'Quantitativo de FTE'}</strong>
+              </span>
             </div>
             <table className="w-full text-[11px] text-center border-collapse">
               <thead>
@@ -1203,7 +1305,8 @@ export default function ComparativoExecutivoPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50 font-mono text-slate-300">
-                <tr>
+                {/* Linhas FTE */}
+                <tr className={chartMetric === 'fte' ? 'bg-blue-950/20' : ''}>
                   <td className="py-1 px-2 text-left font-bold text-blue-400 font-sans">PA (FTE)</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
@@ -1211,7 +1314,7 @@ export default function ComparativoExecutivoPage() {
                     </td>
                   ))}
                 </tr>
-                <tr>
+                <tr className={chartMetric === 'fte' ? 'bg-indigo-950/20' : ''}>
                   <td className="py-1 px-2 text-left font-bold text-indigo-400 font-sans">Forecast (FTE)</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
@@ -1219,7 +1322,7 @@ export default function ComparativoExecutivoPage() {
                     </td>
                   ))}
                 </tr>
-                <tr>
+                <tr className={chartMetric === 'fte' ? 'bg-emerald-950/20' : ''}>
                   <td className="py-1 px-2 text-left font-bold text-emerald-400 font-sans">Realizado (FTE)</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
@@ -1227,7 +1330,7 @@ export default function ComparativoExecutivoPage() {
                     </td>
                   ))}
                 </tr>
-                <tr>
+                <tr className={chartMetric === 'fte' ? 'bg-slate-800/30' : ''}>
                   <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. FTE</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 font-bold ${
@@ -1237,7 +1340,9 @@ export default function ComparativoExecutivoPage() {
                     </td>
                   ))}
                 </tr>
-                <tr className="border-t border-slate-800 bg-white/[0.01]">
+
+                {/* Linhas Financeiras (R$) */}
+                <tr className={`border-t border-slate-800 ${chartMetric === 'valor' ? 'bg-blue-950/30 font-bold' : 'bg-white/[0.01]'}`}>
                   <td className="py-1 px-2 text-left font-bold text-blue-300 font-sans">Total PA (R$)</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
@@ -1245,11 +1350,29 @@ export default function ComparativoExecutivoPage() {
                     </td>
                   ))}
                 </tr>
-                <tr className="bg-white/[0.01]">
+                <tr className={chartMetric === 'valor' ? 'bg-indigo-950/30 font-bold' : 'bg-white/[0.01]'}>
+                  <td className="py-1 px-2 text-left font-bold text-indigo-300 font-sans">Forecast (R$)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
+                      {m.valForecast > 0 ? formatMoney(m.valForecast) : "-"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className={chartMetric === 'valor' ? 'bg-emerald-950/30 font-bold' : 'bg-white/[0.01]'}>
                   <td className="py-1 px-2 text-left font-bold text-emerald-300 font-sans">Total Real (R$)</td>
                   {evolutionChart.map((m) => (
                     <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? 'font-bold text-white bg-[#22c7ac]/5' : ''}`}>
                       {m.valReal > 0 ? formatMoney(m.valReal) : "-"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className={chartMetric === 'valor' ? 'bg-slate-800/40 font-bold' : 'bg-white/[0.01]'}>
+                  <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. Valor (R$)</td>
+                  {evolutionChart.map((m) => (
+                    <td key={m.competence} className={`py-1 px-2 text-[10px] font-bold ${
+                      m.difValor !== null ? (m.difValor > 0 ? 'text-red-400' : 'text-[#00CE7C]') : 'text-slate-400'
+                    } ${m.competence === selectedCompetence ? 'bg-[#22c7ac]/5' : ''}`}>
+                      {m.difValor !== null ? (m.difValor > 0 ? `+${formatMoney(m.difValor)}` : formatMoney(m.difValor)) : "-"}
                     </td>
                   ))}
                 </tr>

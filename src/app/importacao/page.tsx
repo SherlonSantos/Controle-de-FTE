@@ -6,8 +6,11 @@ import { Database, FileSpreadsheet, UploadCloud, Download, TerminalSquare, Loade
 import MultiSelect from "@/components/MultiSelect";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function ImportacaoPage() {
+  const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState("importacao");
   const [importType, setImportType] = useState("ativos");
   const [competence, setCompetence] = useState("");
@@ -930,9 +933,12 @@ export default function ImportacaoPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-transparent">
-      <header className="bg-[#111c33] h-16 flex items-center px-8 border-b border-white/5 shadow-sm z-10">
-        <h1 className="text-xl font-bold text-white">Administração do Sistema</h1>
+    <div className={`flex-1 flex flex-col overflow-hidden transition-colors duration-200 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+      <header className={`h-16 flex items-center justify-between px-8 border-b shadow-sm z-10 transition-colors ${
+        isDark ? 'bg-[#111c33] border-white/5 text-white' : 'bg-white border-slate-200 text-[#041A71]'
+      }`}>
+        <h1 className="text-xl font-bold">Administração do Sistema</h1>
+        <ThemeToggle variant="pill" />
       </header>
 
       <main className="flex-1 overflow-auto p-8">

@@ -212,7 +212,20 @@ const ContractTooltip = ({
   );
 };
 
-export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefix, isLoading }: { data: any[], financialByCC: any, variacaoByPrefix: any, isLoading?: boolean }) {
+export default function ConsolidatedTable({ 
+  data, 
+  financialByCC, 
+  variacaoByPrefix, 
+  isLoading,
+  theme = 'light'
+}: { 
+  data: any[], 
+  financialByCC: any, 
+  variacaoByPrefix: any, 
+  isLoading?: boolean,
+  theme?: 'light' | 'dark'
+}) {
+  const isDark = theme === 'dark';
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
   const [expandedCCs, setExpandedCCs] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>(null);
@@ -438,7 +451,9 @@ export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefi
   };
 
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
+    <div className={`w-full overflow-x-auto rounded-xl border shadow-sm transition-colors ${
+      isDark ? 'bg-[#111c33] border-slate-800' : 'bg-white border-slate-200'
+    }`}>
       <table className="w-full text-sm text-left whitespace-nowrap min-w-[900px]">
         <thead className="bg-[#041A71] text-white">
           <tr className="bg-[#041A71]">
@@ -456,7 +471,7 @@ export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefi
             <th className="px-4 py-3 font-bold text-right bg-[#041A71] text-white" style={{ backgroundColor: '#041A71', color: '#ffffff' }}>% Dif. Valor</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 text-slate-700">
+        <tbody className={`divide-y ${isDark ? 'divide-slate-800/60 text-slate-200' : 'divide-slate-100 text-slate-700'}`}>
           {tree.map(contractNode => {
             const contractExpanded = expandedContracts.has(contractNode.key);
 
@@ -464,7 +479,7 @@ export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefi
               <React.Fragment key={contractNode.key}>
                 {/* Level 1: Contract */}
                 <tr
-                  className="bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer group relative"
+                  className={`${isDark ? 'bg-[#131d36] hover:bg-[#182544]' : 'bg-slate-100 hover:bg-slate-200'} transition-colors cursor-pointer group relative`}
                   onClick={() => toggleContract(contractNode.key)}
                 >
                   <td
@@ -473,10 +488,10 @@ export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefi
                     onMouseLeave={() => handleMouseLeaveContract(contractNode.key)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="font-bold flex items-center gap-2 text-[#041A71] uppercase tracking-wide min-w-0">
+                      <div className={`font-bold flex items-center gap-2 uppercase tracking-wide min-w-0 ${isDark ? 'text-white' : 'text-[#041A71]'}`}>
                         {contractExpanded
-                          ? <MinusSquare className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                          : <PlusSquare className="w-4 h-4 text-slate-500 flex-shrink-0" />}
+                          ? <MinusSquare className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          : <PlusSquare className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                         <span className="truncate" title={contractNode.name}>{contractNode.name}</span>
                       </div>
                       {contractNode.hasChanges && (
@@ -553,11 +568,11 @@ export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefi
                   return (
                     <React.Fragment key={cc.key}>
                       <tr
-                        className="bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
+                        className={`${isDark ? 'bg-[#0f172a] hover:bg-[#16223d]' : 'bg-slate-50 hover:bg-slate-100'} transition-colors cursor-pointer`}
                         onClick={() => toggleCC(cc.key)}
                       >
                         <td className="px-4 py-3 pl-8">
-                          <div className="font-semibold flex items-center gap-2 text-slate-700">
+                          <div className={`font-semibold flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                             {ccExpanded
                               ? <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
                               : <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />}
@@ -596,7 +611,7 @@ export default function ConsolidatedTable({ data, financialByCC, variacaoByPrefi
                         return (
                           <tr
                             key={`${cc.key}_${role.id}_${idx}`}
-                            className="bg-white hover:bg-slate-50 transition-colors"
+                            className={`${isDark ? 'bg-transparent hover:bg-white/[0.04]' : 'bg-white hover:bg-slate-50'} transition-colors`}
                           >
                             <td className="px-4 py-1.5 border-l-4 border-l-transparent"></td>
                             <td className="px-4 py-1.5 text-xs font-medium text-slate-600 uppercase tracking-wide pl-6">

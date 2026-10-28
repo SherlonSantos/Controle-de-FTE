@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, UploadCloud, LogOut, Key, Menu, X, ShieldCheck, GitCompare } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -46,9 +47,12 @@ export default function Sidebar() {
           <span className="text-[#22c7ac] font-bold text-xl">MRO</span>
           <span className="font-semibold text-white/90">FTE</span>
         </div>
-        <button onClick={() => setIsMobileOpen(true)} className="p-2 text-slate-300 hover:text-white">
-          <Menu className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle variant="icon" />
+          <button onClick={() => setIsMobileOpen(true)} className="p-2 text-slate-300 hover:text-white">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile Overlay */}
@@ -130,6 +134,15 @@ export default function Sidebar() {
 
         {/* Footer Area */}
         <div className={`p-4 border-t border-white/10 ${isCollapsed ? 'md:px-2' : ''}`}>
+          <div className="mb-2">
+            {isCollapsed ? (
+              <div className="flex justify-center">
+                <ThemeToggle variant="icon" />
+              </div>
+            ) : (
+              <ThemeToggle variant="pill" className="w-full justify-start" />
+            )}
+          </div>
           <div className="space-y-1">
             <button title={isCollapsed ? "Alterar senha" : undefined} className={`flex items-center ${isCollapsed ? 'md:justify-center' : 'gap-3'} px-4 py-2 w-full text-left text-sm text-slate-300 hover:bg-white/10 rounded-lg transition-colors`}>
               <Key className="w-4 h-4 min-w-[16px]" /> 

@@ -607,6 +607,12 @@ export async function POST(req: Request) {
       compSumsMap.get(comp)!.realizado = g._sum.fteValue || g._count;
     }
 
+    const selPa = compSumsMap.get(selectedCompetence)?.pa || 0;
+    const selFc = compSumsMap.get(selectedCompetence)?.forecast || 0;
+    const totalForecastValor = selPa > 0 && totalPaValor > 0
+      ? Math.round(((selFc / selPa) * totalPaValor) * 100) / 100
+      : totalPaValor;
+
     let evolutionChart = allMonths.map(comp => {
       const item = compSumsMap.get(comp)!;
       const finItem = financialByComp.get(comp) || { valPa: 0, valReal: 0 };
@@ -614,6 +620,11 @@ export async function POST(req: Request) {
       const pctDif = item.realizado > 0 && item.pa > 0 ? ((item.realizado - item.pa) / item.pa) * 100 : null;
       const difVal = finItem.valReal > 0 ? finItem.valReal - finItem.valPa : null;
       const pctVal = finItem.valPa > 0 && finItem.valReal > 0 ? ((finItem.valReal - finItem.valPa) / finItem.valPa) * 100 : null;
+
+      // Forecast R$ proporcional ao FTE planejado x baseline
+      const valForecast = item.pa > 0 && finItem.valPa > 0
+        ? Math.round(((item.forecast / item.pa) * finItem.valPa) * 100) / 100
+        : finItem.valPa;
 
       return {
         competence: comp,
@@ -623,10 +634,11 @@ export async function POST(req: Request) {
         difFTE: difFTE !== null ? Math.round(difFTE) : null,
         pctDif: pctDif !== null ? Math.round(pctDif * 10) / 10 : null,
         hasRealizado: item.realizado > 0,
-        valPa: finItem.valPa,
-        valReal: finItem.valReal,
-        difValor: difVal,
-        pctDifValor: pctVal
+        valPa: Math.round(finItem.valPa * 100) / 100,
+        valForecast: valForecast,
+        valReal: Math.round(finItem.valReal * 100) / 100,
+        difValor: difVal !== null ? Math.round(difVal * 100) / 100 : null,
+        pctDifValor: pctVal !== null ? Math.round(pctVal * 10) / 10 : null
       };
     });
 
@@ -655,6 +667,7 @@ export async function POST(req: Request) {
       },
       financial: {
         totalPaValor: Math.round(totalPaValor * 100) / 100,
+        totalForecastValor: Math.round(totalForecastValor * 100) / 100,
         totalRealValor: Math.round(totalRealValor * 100) / 100,
         difValor: Math.round(difValor * 100) / 100,
         pctDifValor: Math.round(pctDifValor * 100) / 100

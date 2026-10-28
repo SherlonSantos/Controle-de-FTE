@@ -1,11 +1,14 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import MultiSelect from "@/components/MultiSelect";
 import ConsolidatedTable from "@/components/ConsolidatedTable";
 import { Loader2, FilterX, Info, ArrowUp, ArrowDown } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
+  const { isDark } = useTheme();
   const [filterOptions, setFilterOptions] = useState<any>({ competences: [], costCenters: [], statuses: [] });
   const [selectedCompetences, setSelectedCompetences] = useState<string[]>([]);
   const [selectedCostCenters, setSelectedCostCenters] = useState<string[]>([]);
@@ -139,10 +142,14 @@ export default function Home() {
   };
 
   return (
-    <main className="flex-1 flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <main className={`flex-1 flex flex-col h-screen overflow-hidden transition-colors duration-200 ${isDark ? 'bg-[#0a0f1d] text-white' : 'bg-slate-50 text-slate-900'}`}>
       {/* Header and Filters (Fixed Top) */}
-      <div className="bg-white border-b border-slate-200 px-4 py-4 md:px-8 md:py-6 flex-shrink-0 z-20 shadow-sm">
-        <h2 className="text-xl md:text-2xl font-bold text-[#041A71] mb-4 md:mb-6">Controle de Efetivo | FTE</h2>
+      <div className={`px-4 py-4 md:px-8 md:py-6 flex-shrink-0 z-20 shadow-sm border-b transition-colors ${
+        isDark ? 'bg-[#111c33] border-slate-800' : 'bg-white border-slate-200'
+      }`}>
+        <h2 className={`text-xl md:text-2xl font-bold mb-4 md:mb-6 ${isDark ? 'text-white' : 'text-[#041A71]'}`}>
+          Controle de Efetivo | FTE
+        </h2>
         
         <div className="flex flex-col xl:flex-row gap-4 md:gap-6 justify-between items-start xl:items-end">
           <div className="flex flex-wrap gap-4 flex-1">
@@ -152,6 +159,7 @@ export default function Home() {
               options={dynamicCostCenters.map((c: any) => ({ label: `${c.code} - ${c.name}`, value: c.id }))}
               selected={selectedCostCenters}
               onChange={setSelectedCostCenters}
+              theme={isDark ? "dark" : "light"}
             />
             <MultiSelect 
               label="Competência"
@@ -159,6 +167,7 @@ export default function Home() {
               options={filterOptions.competences.map((c: string) => ({ label: c, value: c }))}
               selected={selectedCompetences}
               onChange={setSelectedCompetences}
+              theme={isDark ? "dark" : "light"}
             />
             <MultiSelect 
               label="Contrato"
@@ -166,6 +175,7 @@ export default function Home() {
               options={(filterOptions.contractTypes || []).map((c: string) => ({ label: c, value: c }))}
               selected={selectedContractTypes}
               onChange={setSelectedContractTypes}
+              theme={isDark ? "dark" : "light"}
             />
             <MultiSelect 
               label="Tipo"
@@ -173,6 +183,7 @@ export default function Home() {
               options={(filterOptions.types || []).map((c: string) => ({ label: c, value: c }))}
               selected={selectedTypes}
               onChange={setSelectedTypes}
+              theme={isDark ? "dark" : "light"}
             />
             <MultiSelect 
               label="Tipo de Situação"
@@ -180,14 +191,22 @@ export default function Home() {
               options={filterOptions.statuses.map((c: string) => ({ label: c, value: c }))}
               selected={selectedStatuses}
               onChange={setSelectedStatuses}
+              theme={isDark ? "dark" : "light"}
             />
           </div>
-          <button 
-            onClick={handleClearFilters}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold transition-colors shadow-sm whitespace-nowrap h-[38px] mb-0.5"
-          >
-            <FilterX className="w-4 h-4" /> Limpar Filtros
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle variant="pill" className="h-[38px] mb-0.5" />
+            <button 
+              onClick={handleClearFilters}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm whitespace-nowrap h-[38px] mb-0.5 ${
+                isDark 
+                  ? 'bg-[#162038] hover:bg-[#1c294a] text-slate-200 border border-slate-700/80' 
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+              }`}
+            >
+              <FilterX className="w-4 h-4" /> Limpar Filtros
+            </button>
+          </div>
         </div>
       </div>
 
@@ -196,70 +215,92 @@ export default function Home() {
         
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 flex-shrink-0">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">Total PA</span>
-            <span className="text-3xl font-light text-slate-700">{totals.pa}</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>Total PA</span>
+            <span className={`text-3xl font-light ${isDark ? 'text-white' : 'text-slate-700'}`}>{totals.pa}</span>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">Baseline Ajustado</span>
-            <span className="text-3xl font-light text-slate-700">{totals.forecast}</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>Baseline Ajustado</span>
+            <span className={`text-3xl font-light ${isDark ? 'text-white' : 'text-slate-700'}`}>{totals.forecast}</span>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">Realizado</span>
-            <span className="text-3xl font-light text-slate-700">{totals.realized}</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>Realizado</span>
+            <span className={`text-3xl font-light ${isDark ? 'text-white' : 'text-slate-700'}`}>{totals.realized}</span>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">Realizado (Real. - PA)</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>Realizado (Real. - PA)</span>
             <span className={`text-3xl font-medium ${getCardColor(difPA)}`}>{difPA > 0 ? `+${difPA}` : difPA}</span>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">Realizado (Real. - Ajust.)</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>Realizado (Real. - Ajust.)</span>
             <span className={`text-3xl font-medium ${getCardColor(difFC)}`}>{difFC > 0 ? `+${difFC}` : difFC}</span>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">% Realizado PA</span>
-            <span className="text-3xl font-light text-slate-700">{formatPct(pctPA)}</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>% Realizado PA</span>
+            <span className={`text-3xl font-light ${isDark ? 'text-white' : 'text-slate-700'}`}>{formatPct(pctPA)}</span>
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-bold text-[#041A71] mb-2 uppercase tracking-wide">% Realizado Baseline</span>
-            <span className="text-3xl font-light text-slate-700">{formatPct(pctFC)}</span>
+          <div className={`rounded-xl p-5 border shadow-sm flex flex-col items-center justify-center text-center transition-colors ${
+            isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <span className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-[#041A71]'}`}>% Realizado Baseline</span>
+            <span className={`text-3xl font-light ${isDark ? 'text-white' : 'text-slate-700'}`}>{formatPct(pctFC)}</span>
           </div>
         </div>
 
         {/* Variação FTE (Financeiro) */}
         <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-bold text-[#041A71] mb-2">Indicadores Financeiros (Variação FTE)</h3>
+          <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-[#041A71]'}`}>
+            Indicadores Financeiros (Variação FTE)
+          </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Total PA */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-center">
-              <div className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <div className={`rounded-xl p-5 border shadow-sm flex flex-col justify-center transition-colors ${
+              isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+              <div className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
                 Total PA (R$)
                 <Info className="w-3 h-3 text-slate-400"  />
               </div>
-              <div className="text-2xl font-mono font-bold text-[#041A71]">
+              <div className={`text-2xl font-mono font-bold ${isDark ? 'text-blue-400' : 'text-[#041A71]'}`}>
                 {formatMoney(financialData.variacaoTotalPA)}
               </div>
             </div>
 
             {/* Total Realizado */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-center">
-              <div className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <div className={`rounded-xl p-5 border shadow-sm flex flex-col justify-center transition-colors ${
+              isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+              <div className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
                 Total Real. (R$)
                 <Info className="w-3 h-3 text-slate-400"  />
               </div>
-              <div className="text-2xl font-mono font-bold text-[#041A71]">
+              <div className={`text-2xl font-mono font-bold ${isDark ? 'text-emerald-400' : 'text-[#041A71]'}`}>
                 {formatMoney(financialData.variacaoTotalReal)}
               </div>
             </div>
 
             {/* Diferença Valor */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-center relative overflow-hidden">
-              <div className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <div className={`rounded-xl p-5 border shadow-sm flex flex-col justify-center relative overflow-hidden transition-colors ${
+              isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+              <div className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
                 Dif. Valor (Real - PA)
                 <Info className="w-3 h-3 text-slate-400"  />
               </div>
-              <div className={`text-2xl font-mono font-bold ${financialData.variacaoDif < 0 ? 'text-[#22c7ac]' : (financialData.variacaoDif > 0 ? 'text-red-500' : 'text-slate-800')}`}>
+              <div className={`text-2xl font-mono font-bold ${financialData.variacaoDif < 0 ? 'text-[#22c7ac]' : (financialData.variacaoDif > 0 ? 'text-red-500' : (isDark ? 'text-white' : 'text-slate-800'))}`}>
                 {formatMoney(financialData.variacaoDif)}
               </div>
               {financialData.variacaoDif !== 0 && (
@@ -268,13 +309,15 @@ export default function Home() {
             </div>
 
             {/* % Diferença */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-center">
-              <div className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <div className={`rounded-xl p-5 border shadow-sm flex flex-col justify-center transition-colors ${
+              isDark ? 'bg-[#111c33] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+              <div className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
                 % Dif. Valor
                 <Info className="w-3 h-3 text-slate-400"  />
               </div>
               <div className="flex items-center gap-3">
-                <div className={`text-3xl font-mono font-black ${financialData.variacaoDifPercent < 0 ? 'text-[#22c7ac]' : (financialData.variacaoDifPercent > 0 ? 'text-red-500' : 'text-slate-800')}`}>
+                <div className={`text-3xl font-mono font-black ${financialData.variacaoDifPercent < 0 ? 'text-[#22c7ac]' : (financialData.variacaoDifPercent > 0 ? 'text-red-500' : (isDark ? 'text-white' : 'text-slate-800'))}`}>
                   {financialData.variacaoDifPercent > 0 ? '+' : ''}{financialData.variacaoDifPercent.toFixed(1)}%
                 </div>
                 {financialData.variacaoDifPercent !== 0 && (
@@ -289,7 +332,13 @@ export default function Home() {
 
         {/* Matrix Table */}
         <div className="flex-1 min-h-[400px]">
-          <ConsolidatedTable data={summaryData} financialByCC={financialByCC} variacaoByPrefix={variacaoByPrefix} isLoading={isLoading} />
+          <ConsolidatedTable 
+            data={summaryData} 
+            financialByCC={financialByCC} 
+            variacaoByPrefix={variacaoByPrefix} 
+            isLoading={isLoading} 
+            theme={isDark ? "dark" : "light"}
+          />
         </div>
       </div>
     </main>
