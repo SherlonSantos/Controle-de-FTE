@@ -14,97 +14,46 @@ function normalizeText(s: string) {
     .toLowerCase();
 }
 
+function isSubtotalRole(ccCode: string, ccDesc: string, roleTitle: string) {
+  const roleClean = normalizeText(roleTitle);
+  const ccCodeClean = normalizeText(ccCode);
+  const ccDescFullClean = normalizeText(`${ccCode} - ${ccDesc}`);
+  const ccDescClean = normalizeText(ccDesc);
+  return roleClean === ccCodeClean || roleClean === ccDescFullClean || roleClean === ccDescClean;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
-      initialCompetence,
-      finalCompetence,
-      scenario = 'Realizado', // 'Realizado' | 'PA' | 'Forecast'
+      competence: reqCompetence,
       contracts = [],
       locations = [],
       costCenters = [],
       roles = [],
-      movementTypes = []
+      historicalMonths = 12
     } = body;
 
-    if (!initialCompetence || !finalCompetence) {
-      return NextResponse.json({ error: 'Competência inicial e final são obrigatórias.' }, { status: 400 });
-    }
+    // 1. Identify distinct active competences
+    const distinctActiveComps = await prisma.activeList.findMany({
+      select: { competence: true },
+      distinct: ['competence']
+    });
+    const activeCompetences = sortCompetences(distinctActiveComps.map(c => c.competence).filter(Boolean));
 
-    // --- 1. Fetch All Active / Plan Competences to build the Historical Evolution Chart ---
-    let historicalCompetences: string[] = [];
-    if (scenario === 'Realizado') {
-      const distinctComps = await prisma.activeList.findMany({
-        select: { competence: true },
-        distinct: ['competence']
-      });
-      historicalCompetences = sortCompetences(distinctComps.map(c => c.competence).filter(Boolean));
-    } else {
-      const distinctComps = await prisma.planRecord.findMany({
-        select: { competence: true },
-        distinct: ['competence']
-      });
-      const normComps = new Set<string>();
-      distinctComps.forEach(c => {
-        if (!c.competence) return;
-        const p = c.competence.trim().split('/');
-        if (p.length === 2) normComps.add(c.competence.trim());
-        else if (p.length === 3) normComps.add(`${p[1]}/${p[2]}`);
-      });
-      historicalCompetences = sortCompetences(Array.from(normComps));
-    }
+    // Reference competence defaults to latest active competence
+    const selectedCompetence = reqCompetence && reqCompetence.trim()
+      ? reqCompetence.trim()
+      : (activeCompetences.length > 0 ? activeCompetences[activeCompetences.length - 1] : '09/2026');
 
-    // Ensure initial and final are in historical competences
-    if (!historicalCompetences.includes(initialCompetence)) historicalCompetences.push(initialCompetence);
-    if (!historicalCompetences.includes(finalCompetence)) historicalCompetences.push(finalCompetence);
-    historicalCompetences = sortCompetences(Array.from(new Set(historicalCompetences)));
+    // Find previous competence for MoM analysis
+    const selectedCompIdx = activeCompetences.indexOf(selectedCompetence);
+    const previousCompetence = selectedCompIdx > 0 ? activeCompetences[selectedCompIdx - 1] : null;
 
-    // --- 2. Query Data for the Selected Scenario ---
-    // We will build a matrix: key = `${costCenterId}__${roleId}`
-    // and competence values: map[comp] = fte
-    type RowEntry = {
-      costCenterId: string;
-      costCenterCode: string;
-      costCenterDesc: string;
-      contractId: string;
-      contractName: string;
-      location: string;
-      roleId: string;
-      roleTitle: string;
-      compValues: Record<string, number>;
-    };
+    const [compMonthStr, compYearStr] = selectedCompetence.split('/');
+    const yearInt = parseInt(compYearStr || '2026', 10);
 
-    const matrix = new Map<string, RowEntry>();
-
-    const getRowEntry = (
-      ccId: string,
-      ccCode: string,
-      ccDesc: string,
-      contractId: string,
-      contractName: string,
-      roleId: string,
-      roleTitle: string
-    ) => {
-      const key = `${ccId}__${roleId}`;
-      if (!matrix.has(key)) {
-        const loc = extractLocation(ccDesc, ccCode);
-        matrix.set(key, {
-          costCenterId: ccId,
-          costCenterCode: ccCode,
-          costCenterDesc: ccDesc,
-          contractId,
-          contractName: contractName || 'Sem Contrato',
-          location: loc,
-          roleId,
-          roleTitle,
-          compValues: {}
-        });
-      }
-      return matrix.get(key)!;
-    };
-
-    // CostCenter filter
+    // 2. Build Cost Center filter
     const ccFilter: any = {};
     if (costCenters.length > 0) {
       ccFilter.id = { in: costCenters };
@@ -113,9 +62,55 @@ export async function POST(req: Request) {
       ccFilter.operation = { contract: { name: { in: contracts } } };
     }
 
-    if (scenario === 'Realizado') {
-      const records = await prisma.activeList.findMany({
+    // 3. Fetch Plan Versions (PA and FORECAST for reference year)
+    const [paVersion, forecastVersion] = await Promise.all([
+      prisma.planVersion.findFirst({
+        where: { year: yearInt, type: 'PA' },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.planVersion.findFirst({
+        where: { year: yearInt, type: 'FORECAST' },
+        orderBy: { createdAt: 'desc' }
+      })
+    ]);
+
+    // 4. Concurrently query records for selected competence, previous competence, and governance
+    const [
+      paRecords,
+      forecastRecords,
+      activeRecords,
+      prevActiveRecords,
+      governanceRecords
+    ] = await Promise.all([
+      paVersion
+        ? prisma.planRecord.findMany({
+            where: {
+              versionId: paVersion.id,
+              competence: selectedCompetence,
+              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
+            },
+            include: {
+              costCenter: { include: { operation: { include: { contract: true } } } },
+              role: true
+            }
+          })
+        : [],
+      forecastVersion
+        ? prisma.planRecord.findMany({
+            where: {
+              versionId: forecastVersion.id,
+              competence: selectedCompetence,
+              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
+            },
+            include: {
+              costCenter: { include: { operation: { include: { contract: true } } } },
+              role: true
+            }
+          })
+        : [],
+      prisma.activeList.findMany({
         where: {
+          competence: selectedCompetence,
           status: { not: 'Rescisão' },
           ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
         },
@@ -123,603 +118,532 @@ export async function POST(req: Request) {
           costCenter: { include: { operation: { include: { contract: true } } } },
           role: true
         }
-      });
-
-      for (const item of records) {
-        const comp = item.competence?.trim();
-        if (!comp) continue;
-
-        const ccCode = item.costCenter?.code || '';
-        const ccDesc = item.costCenter?.description || '';
-        const roleTitle = item.role?.title || '';
-
-        const roleClean = normalizeText(roleTitle);
-        const ccCodeClean = normalizeText(ccCode);
-        const ccDescFullClean = normalizeText(`${ccCode} - ${ccDesc}`);
-        const ccDescClean = normalizeText(ccDesc);
-
-        // Skip subtotal dummy rows
-        if (roleClean === ccCodeClean || roleClean === ccDescFullClean || roleClean === ccDescClean) {
-          continue;
+      }),
+      previousCompetence
+        ? prisma.activeList.findMany({
+            where: {
+              competence: previousCompetence,
+              status: { not: 'Rescisão' },
+              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
+            },
+            include: {
+              costCenter: { include: { operation: { include: { contract: true } } } },
+              role: true
+            }
+          })
+        : [],
+      prisma.governanceRecord.findMany({
+        where: { competence: selectedCompetence },
+        include: {
+          contract: true,
+          costCenter: true,
+          role: true,
+          requester: true,
+          approver: true,
+          evidences: true
         }
+      })
+    ]);
 
-        const entry = getRowEntry(
-          item.costCenter.id,
-          ccCode,
-          ccDesc,
-          item.costCenter.operation?.contract?.id || '',
-          item.costCenter.operation?.contract?.name || 'Sem Contrato',
-          item.role.id,
-          roleTitle
-        );
+    // 5. Build Aggregation Tree: Contrato (L1) -> Localidade (L2) -> Cargo (L3)
+    type RoleItem = {
+      roleId: string;
+      roleTitle: string;
+      pa: number;
+      forecast: number;
+      realizado: number;
+      difFTE: number;
+      pctDif: number | null;
+      justification?: string | null;
+      responsible?: string | null;
+      governanceStatus?: string | null;
+      governanceOrigin?: string | null;
+      evidence?: any | null;
+    };
 
-        entry.compValues[comp] = (entry.compValues[comp] || 0) + (item.fteValue || 1.0);
-      }
-    } else {
-      // PA or Forecast
-      const planType = scenario === 'PA' ? 'PA' : 'FORECAST';
-      const versions = await prisma.planVersion.findMany({
-        where: { type: planType },
-        orderBy: { createdAt: 'desc' }
-      });
+    type LocationItem = {
+      locationName: string;
+      costCenterCode: string;
+      costCenterDesc: string;
+      costCenterId: string;
+      pa: number;
+      forecast: number;
+      realizado: number;
+      difFTE: number;
+      pctDif: number | null;
+      roles: Map<string, RoleItem>;
+    };
 
-      const versionIds = versions.map(v => v.id);
+    type ContractItem = {
+      contractId: string;
+      contractName: string;
+      pa: number;
+      forecast: number;
+      realizado: number;
+      difFTE: number;
+      pctDif: number | null;
+      hasZeroPA: boolean;
+      locations: Map<string, LocationItem>;
+    };
 
-      if (versionIds.length > 0) {
-        const records = await prisma.planRecord.findMany({
-          where: {
-            versionId: { in: versionIds },
-            ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
-          },
-          include: {
-            costCenter: { include: { operation: { include: { contract: true } } } },
-            role: true
-          }
+    const contractsMap = new Map<string, ContractItem>();
+
+    const getContractNode = (cName: string, cId: string) => {
+      if (!contractsMap.has(cName)) {
+        contractsMap.set(cName, {
+          contractId: cId || '',
+          contractName: cName,
+          pa: 0,
+          forecast: 0,
+          realizado: 0,
+          difFTE: 0,
+          pctDif: 0,
+          hasZeroPA: false,
+          locations: new Map()
         });
+      }
+      return contractsMap.get(cName)!;
+    };
 
-        for (const item of records) {
-          let comp = item.competence?.trim() || '';
-          if (comp.includes('/')) {
-            const p = comp.split('/');
-            if (p.length === 3) comp = `${p[1]}/${p[2]}`;
+    const getLocationNode = (contractNode: ContractItem, cc: any) => {
+      const ccCode = cc.code || '';
+      const ccDesc = cc.description || '';
+      const locName = extractLocation(ccDesc, ccCode);
+      const locKey = `${cc.id || ccCode}`;
+
+      if (!contractNode.locations.has(locKey)) {
+        contractNode.locations.set(locKey, {
+          locationName: locName,
+          costCenterCode: ccCode,
+          costCenterDesc: ccDesc,
+          costCenterId: cc.id || '',
+          pa: 0,
+          forecast: 0,
+          realizado: 0,
+          difFTE: 0,
+          pctDif: 0,
+          roles: new Map()
+        });
+      }
+      return contractNode.locations.get(locKey)!;
+    };
+
+    const getRoleNode = (locNode: LocationItem, role: any) => {
+      const roleId = role?.id || 'unknown';
+      const roleTitle = role?.title || 'Não informado';
+
+      if (!locNode.roles.has(roleId)) {
+        locNode.roles.set(roleId, {
+          roleId,
+          roleTitle,
+          pa: 0,
+          forecast: 0,
+          realizado: 0,
+          difFTE: 0,
+          pctDif: 0,
+          justification: null,
+          responsible: null,
+          governanceStatus: null,
+          governanceOrigin: null,
+          evidence: null
+        });
+      }
+      return locNode.roles.get(roleId)!;
+    };
+
+    // Populate PA
+    for (const item of paRecords) {
+      if (!item.costCenter) continue;
+      const cName = item.costCenter.operation?.contract?.name || 'Sem Contrato';
+      const cId = item.costCenter.operation?.contract?.id || '';
+      const ccCode = item.costCenter.code || '';
+      const ccDesc = item.costCenter.description || '';
+      const roleTitle = item.role?.title || '';
+
+      if (isSubtotalRole(ccCode, ccDesc, roleTitle)) continue;
+
+      const locName = extractLocation(ccDesc, ccCode);
+      if (locations.length > 0 && !locations.includes(locName)) continue;
+      if (roles.length > 0 && !roles.includes(roleTitle)) continue;
+
+      const contractNode = getContractNode(cName, cId);
+      const locNode = getLocationNode(contractNode, item.costCenter);
+      const roleNode = getRoleNode(locNode, item.role);
+
+      const val = item.plannedFte || 0;
+      roleNode.pa += val;
+      locNode.pa += val;
+      contractNode.pa += val;
+    }
+
+    // Populate Forecast
+    for (const item of forecastRecords) {
+      if (!item.costCenter) continue;
+      const cName = item.costCenter.operation?.contract?.name || 'Sem Contrato';
+      const cId = item.costCenter.operation?.contract?.id || '';
+      const ccCode = item.costCenter.code || '';
+      const ccDesc = item.costCenter.description || '';
+      const roleTitle = item.role?.title || '';
+
+      if (isSubtotalRole(ccCode, ccDesc, roleTitle)) continue;
+
+      const locName = extractLocation(ccDesc, ccCode);
+      if (locations.length > 0 && !locations.includes(locName)) continue;
+      if (roles.length > 0 && !roles.includes(roleTitle)) continue;
+
+      const contractNode = getContractNode(cName, cId);
+      const locNode = getLocationNode(contractNode, item.costCenter);
+      const roleNode = getRoleNode(locNode, item.role);
+
+      const val = item.adjustedFte !== null ? item.adjustedFte : item.plannedFte;
+      roleNode.forecast += val || 0;
+      locNode.forecast += val || 0;
+      contractNode.forecast += val || 0;
+
+      if (item.justification && !roleNode.justification) {
+        roleNode.justification = item.justification;
+        roleNode.governanceOrigin = 'Upload Forecast';
+      }
+    }
+
+    // Populate Realizado
+    for (const item of activeRecords) {
+      if (!item.costCenter) continue;
+      const cName = item.costCenter.operation?.contract?.name || 'Sem Contrato';
+      const cId = item.costCenter.operation?.contract?.id || '';
+      const ccCode = item.costCenter.code || '';
+      const ccDesc = item.costCenter.description || '';
+      const roleTitle = item.role?.title || '';
+
+      if (isSubtotalRole(ccCode, ccDesc, roleTitle)) continue;
+
+      const locName = extractLocation(ccDesc, ccCode);
+      if (locations.length > 0 && !locations.includes(locName)) continue;
+      if (roles.length > 0 && !roles.includes(roleTitle)) continue;
+
+      const contractNode = getContractNode(cName, cId);
+      const locNode = getLocationNode(contractNode, item.costCenter);
+      const roleNode = getRoleNode(locNode, item.role);
+
+      const val = item.fteValue || 1.0;
+      roleNode.realizado += val;
+      locNode.realizado += val;
+      contractNode.realizado += val;
+    }
+
+    // Match Governance Records to Roles
+    for (const contractNode of contractsMap.values()) {
+      for (const locNode of contractNode.locations.values()) {
+        for (const roleNode of locNode.roles.values()) {
+          const matchedGov = governanceRecords.find(g => {
+            const contractMatch = g.contractId === contractNode.contractId || (g.contract && g.contract.name === contractNode.contractName);
+            const roleMatch = g.roleId === roleNode.roleId || (g.role && g.role.title === roleNode.roleTitle);
+            const ccMatch = !g.costCenterId || g.costCenterId === locNode.costCenterId;
+            return contractMatch && roleMatch && ccMatch;
+          });
+
+          if (matchedGov) {
+            roleNode.justification = matchedGov.justification || roleNode.justification;
+            roleNode.responsible = matchedGov.approver?.name || matchedGov.requester?.name || 'Gestor Autorizado';
+            roleNode.governanceStatus = matchedGov.status || 'APROVADO';
+            roleNode.governanceOrigin = 'Manual Governança';
+            if (matchedGov.evidences && matchedGov.evidences.length > 0) {
+              roleNode.evidence = {
+                id: matchedGov.evidences[0].id,
+                fileName: matchedGov.evidences[0].fileName,
+                filePath: matchedGov.evidences[0].filePath,
+                fileType: matchedGov.evidences[0].fileType
+              };
+            }
           }
-          if (!comp) continue;
-
-          const ccCode = item.costCenter?.code || '';
-          const ccDesc = item.costCenter?.description || '';
-          const roleTitle = item.role?.title || '';
-
-          const roleClean = normalizeText(roleTitle);
-          const ccCodeClean = normalizeText(ccCode);
-          const ccDescFullClean = normalizeText(`${ccCode} - ${ccDesc}`);
-          const ccDescClean = normalizeText(ccDesc);
-
-          if (roleClean === ccCodeClean || roleClean === ccDescFullClean || roleClean === ccDescClean) {
-            continue;
-          }
-
-          const entry = getRowEntry(
-            item.costCenter.id,
-            ccCode,
-            ccDesc,
-            item.costCenter.operation?.contract?.id || '',
-            item.costCenter.operation?.contract?.name || 'Sem Contrato',
-            item.role.id,
-            roleTitle
-          );
-
-          const val = planType === 'FORECAST' && item.adjustedFte !== null ? item.adjustedFte : item.plannedFte;
-          entry.compValues[comp] = (entry.compValues[comp] || 0) + val;
         }
       }
     }
 
-    // --- 3. Fetch Governance Records for matching ---
-    const governanceRecords = await prisma.governanceRecord.findMany({
-      where: {
-        competence: { in: [finalCompetence, initialCompetence] }
-      },
-      include: {
-        contract: true,
-        costCenter: true,
-        role: true,
-        requester: true,
-        approver: true,
-        evidences: true
+    // 6. Calculate Differences and Percentages across all levels
+    let grandTotalPA = 0;
+    let grandTotalFC = 0;
+    let grandTotalReal = 0;
+
+    const formattedContracts: any[] = [];
+
+    for (const c of contractsMap.values()) {
+      // Skip empty ghost contracts
+      if (c.pa === 0 && c.forecast === 0 && c.realizado === 0) continue;
+
+      grandTotalPA += c.pa;
+      grandTotalFC += c.forecast;
+      grandTotalReal += c.realizado;
+
+      c.difFTE = c.realizado - c.pa;
+      c.hasZeroPA = c.pa === 0;
+      c.pctDif = c.pa > 0 ? ((c.realizado - c.pa) / c.pa) * 100 : (c.realizado > 0 ? 100 : 0);
+
+      const locationsArray: any[] = [];
+      for (const loc of c.locations.values()) {
+        if (loc.pa === 0 && loc.forecast === 0 && loc.realizado === 0) continue;
+
+        loc.difFTE = loc.realizado - loc.pa;
+        loc.pctDif = loc.pa > 0 ? ((loc.realizado - loc.pa) / loc.pa) * 100 : (loc.realizado > 0 ? 100 : 0);
+
+        const rolesArray: any[] = [];
+        for (const r of loc.roles.values()) {
+          if (r.pa === 0 && r.forecast === 0 && r.realizado === 0) continue;
+          r.difFTE = r.realizado - r.pa;
+          r.pctDif = r.pa > 0 ? ((r.realizado - r.pa) / r.pa) * 100 : (r.realizado > 0 ? 100 : 0);
+          rolesArray.push(r);
+        }
+
+        rolesArray.sort((a, b) => Math.abs(b.difFTE) - Math.abs(a.difFTE));
+
+        locationsArray.push({
+          locationName: loc.locationName,
+          costCenterCode: loc.costCenterCode,
+          costCenterDesc: loc.costCenterDesc,
+          costCenterId: loc.costCenterId,
+          pa: loc.pa,
+          forecast: loc.forecast,
+          realizado: loc.realizado,
+          difFTE: loc.difFTE,
+          pctDif: loc.pctDif !== null ? Math.round(loc.pctDif * 100) / 100 : null,
+          hasZeroPA: loc.pa === 0,
+          roles: rolesArray
+        });
       }
+
+      locationsArray.sort((a, b) => Math.abs(b.difFTE) - Math.abs(a.difFTE));
+
+      formattedContracts.push({
+        contractId: c.contractId,
+        contractName: c.contractName,
+        pa: c.pa,
+        forecast: c.forecast,
+        realizado: c.realizado,
+        difFTE: c.difFTE,
+        pctDif: c.pctDif !== null ? Math.round(c.pctDif * 100) / 100 : null,
+        hasZeroPA: c.hasZeroPA,
+        locations: locationsArray
+      });
+    }
+
+    // 7. Generate TOP 10 Rankings
+    // Table A - TOP 10 Maiores Desvios (Realizado > PA)
+    // Priority: Positive % deviation descending, then positive absolute difFTE
+    const topMaioresDesvios = [...formattedContracts]
+      .filter(c => c.difFTE > 0)
+      .sort((a, b) => {
+        // If one has zero PA and positive real, order sensibly
+        if (a.hasZeroPA && !b.hasZeroPA) return 1; // Real with valid PA usually first, or vice-versa
+        if (!a.hasZeroPA && b.hasZeroPA) return -1;
+        return (b.pctDif || 0) - (a.pctDif || 0) || b.difFTE - a.difFTE;
+      })
+      .slice(0, 10)
+      .map((c, index) => ({
+        ...c,
+        rank: index + 1
+      }));
+
+    // Table B - TOP 10 Menores Desvios (Realizado < PA)
+    // Priority: Negative % deviation ascending (most negative first), then most negative difFTE
+    const topMenoresDesvios = [...formattedContracts]
+      .filter(c => c.difFTE < 0)
+      .sort((a, b) => (a.pctDif || 0) - (b.pctDif || 0) || a.difFTE - b.difFTE)
+      .slice(0, 10)
+      .map((c, index) => ({
+        ...c,
+        rank: index + 1
+      }));
+
+    // 8. Overall KPI Cards
+    const difPA = grandTotalReal - grandTotalPA;
+    const difForecast = grandTotalReal - grandTotalFC;
+    const pctPA = grandTotalPA > 0 ? ((grandTotalReal - grandTotalPA) / grandTotalPA) * 100 : null;
+    const pctForecast = grandTotalFC > 0 ? ((grandTotalReal - grandTotalFC) / grandTotalFC) * 100 : null;
+
+    // 9. Complementary Executive Indicators
+    const totalEvaluatedContracts = formattedContracts.length;
+    const abovePAContracts = formattedContracts.filter(c => c.difFTE > 0);
+    const onLimitPAContracts = formattedContracts.filter(c => c.difFTE === 0);
+    const belowPAContracts = formattedContracts.filter(c => c.difFTE < 0);
+
+    const positiveExcessoSum = abovePAContracts.reduce((acc, c) => acc + c.difFTE, 0);
+    const negativeDeficitSum = belowPAContracts.reduce((acc, c) => acc + c.difFTE, 0);
+
+    // Month-over-Month variation (MoM)
+    let prevRealTotal = 0;
+    if (prevActiveRecords.length > 0) {
+      for (const item of prevActiveRecords) {
+        if (!item.costCenter) continue;
+        const ccCode = item.costCenter.code || '';
+        const ccDesc = item.costCenter.description || '';
+        const roleTitle = item.role?.title || '';
+        if (isSubtotalRole(ccCode, ccDesc, roleTitle)) continue;
+
+        const locName = extractLocation(ccDesc, ccCode);
+        if (locations.length > 0 && !locations.includes(locName)) continue;
+        if (roles.length > 0 && !roles.includes(roleTitle)) continue;
+
+        prevRealTotal += item.fteValue || 1.0;
+      }
+    }
+
+    const momDiff = previousCompetence ? grandTotalReal - prevRealTotal : 0;
+    const momPct = previousCompetence && prevRealTotal > 0 ? ((grandTotalReal - prevRealTotal) / prevRealTotal) * 100 : 0;
+
+    // Margins for Vacancies
+    const margemTotalPA = Math.max(0, grandTotalPA - grandTotalReal);
+    const margemTotalForecast = Math.max(0, grandTotalFC - grandTotalReal);
+    const capacidadeNovasVagas = Math.max(0, Math.min(grandTotalPA - grandTotalReal, grandTotalFC - grandTotalReal));
+
+    const contratosComMargem = formattedContracts.filter(c => c.realizado < c.pa && c.realizado < c.forecast).length;
+    const contratosRequerAnalise = formattedContracts.filter(c => (c.realizado < c.pa && c.realizado >= c.forecast) || (c.realizado >= c.pa && c.realizado < c.forecast)).length;
+    const contratosSemMargem = formattedContracts.filter(c => c.realizado >= c.pa && c.realizado >= c.forecast).length;
+
+    // 10. Historical Evolution Chart (PA x Realizado)
+    // Gather all 12 competences for the year
+    const allMonths = [
+      `01/${yearInt}`, `02/${yearInt}`, `03/${yearInt}`, `04/${yearInt}`,
+      `05/${yearInt}`, `06/${yearInt}`, `07/${yearInt}`, `08/${yearInt}`,
+      `09/${yearInt}`, `10/${yearInt}`, `11/${yearInt}`, `12/${yearInt}`
+    ];
+
+    // High performance SQL GROUP BY for historical evolution
+    const [paGrouped, fcGrouped, actGrouped] = await Promise.all([
+      paVersion
+        ? prisma.planRecord.groupBy({
+            by: ['competence'],
+            where: {
+              versionId: paVersion.id,
+              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
+            },
+            _sum: { plannedFte: true }
+          })
+        : [],
+      forecastVersion
+        ? prisma.planRecord.groupBy({
+            by: ['competence'],
+            where: {
+              versionId: forecastVersion.id,
+              ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
+            },
+            _sum: { plannedFte: true, adjustedFte: true }
+          })
+        : [],
+      prisma.activeList.groupBy({
+        by: ['competence'],
+        where: {
+          status: { not: 'Rescisão' },
+          ...(Object.keys(ccFilter).length > 0 ? { costCenter: ccFilter } : {})
+        },
+        _sum: { fteValue: true },
+        _count: true
+      })
+    ]);
+
+    const compSumsMap = new Map<string, { pa: number; forecast: number; realizado: number }>();
+    allMonths.forEach(m => compSumsMap.set(m, { pa: 0, forecast: 0, realizado: 0 }));
+
+    for (const g of paGrouped) {
+      const comp = g.competence?.trim();
+      if (!comp || !compSumsMap.has(comp)) continue;
+      compSumsMap.get(comp)!.pa = g._sum.plannedFte || 0;
+    }
+
+    for (const g of fcGrouped) {
+      const comp = g.competence?.trim();
+      if (!comp || !compSumsMap.has(comp)) continue;
+      // If adjustedFte is present in the sum, prefer adjusted, else planned
+      const fcVal = g._sum.adjustedFte !== null && g._sum.adjustedFte !== undefined
+        ? g._sum.adjustedFte
+        : (g._sum.plannedFte || 0);
+      compSumsMap.get(comp)!.forecast = fcVal;
+    }
+
+    for (const g of actGrouped) {
+      const comp = g.competence?.trim();
+      if (!comp || !compSumsMap.has(comp)) continue;
+      compSumsMap.get(comp)!.realizado = g._sum.fteValue || g._count;
+    }
+
+    let evolutionChart = allMonths.map(comp => {
+      const item = compSumsMap.get(comp)!;
+      const difFTE = item.realizado > 0 ? item.realizado - item.pa : null;
+      const pctDif = item.realizado > 0 && item.pa > 0 ? ((item.realizado - item.pa) / item.pa) * 100 : null;
+      return {
+        competence: comp,
+        pa: Math.round(item.pa),
+        forecast: Math.round(item.forecast),
+        realizado: Math.round(item.realizado),
+        difFTE: difFTE !== null ? Math.round(difFTE) : null,
+        pctDif: pctDif !== null ? Math.round(pctDif * 10) / 10 : null,
+        hasRealizado: item.realizado > 0
+      };
     });
 
-    // --- 4. Process Rows for the Comparative (initialCompetence vs finalCompetence) ---
-    const allRows = Array.from(matrix.values());
-
-    const detailedItems: any[] = [];
-
-    for (const row of allRows) {
-      // Filter by location if specified
-      if (locations.length > 0 && !locations.includes(row.location)) {
-        continue;
+    // If 6 months requested, filter to window surrounding the selected competence
+    if (historicalMonths === 6) {
+      const selectedIdx = allMonths.indexOf(selectedCompetence);
+      let startIdx = Math.max(0, selectedIdx - 5);
+      if (startIdx + 6 > allMonths.length) {
+        startIdx = Math.max(0, allMonths.length - 6);
       }
-      // Filter by role if specified
-      if (roles.length > 0 && !roles.includes(row.roleTitle)) {
-        continue;
-      }
-
-      const qtyInitial = row.compValues[initialCompetence] || 0;
-      const qtyFinal = row.compValues[finalCompetence] || 0;
-      const variation = qtyFinal - qtyInitial;
-
-      // Classify movement type (Rule from Item 15):
-      // Resultado > 0 e Inicial > 0: Acréscimo
-      // Resultado < 0 e Final > 0: Redução
-      // Anterior = 0 e Atual > 0: Inclusão de cargo
-      // Anterior > 0 e Atual = 0: Exclusão de cargo
-      // Resultado = 0: Sem alteração
-      let movementType = 'Sem alteração';
-      if (variation > 0) {
-        movementType = qtyInitial === 0 ? 'Inclusão de cargo' : 'Acréscimo';
-      } else if (variation < 0) {
-        movementType = qtyFinal === 0 ? 'Exclusão de cargo' : 'Redução';
-      }
-
-      // Filter by movement type if specified
-      if (movementTypes.length > 0 && !movementTypes.includes(movementType)) {
-        continue;
-      }
-
-      // If both are 0 and no variation, skip to avoid empty clutter
-      if (qtyInitial === 0 && qtyFinal === 0) {
-        continue;
-      }
-
-      const pctVariation = qtyInitial === 0 ? (qtyFinal > 0 ? 100 : 0) : ((variation / qtyInitial) * 100);
-
-      // Match Governance Record
-      let matchedGov: any = null;
-      if (variation !== 0) {
-        matchedGov = governanceRecords.find(g => {
-          const compMatch = g.competence === finalCompetence || g.competence === initialCompetence;
-          const contractMatch = g.contractId === row.contractId || (g.contract && g.contract.name === row.contractName);
-          const roleMatch = g.roleId === row.roleId || (g.role && g.role.title === row.roleTitle);
-          const ccMatch = !g.costCenterId || g.costCenterId === row.costCenterId;
-          return compMatch && contractMatch && roleMatch && ccMatch;
-        });
-      }
-
-      let justification = null;
-      let responsible = null;
-      let changeDate: string | null = null;
-      let evidence = null;
-      let governanceStatus = 'Sem alteração';
-      let governanceId = null;
-
-      if (variation !== 0) {
-        if (matchedGov) {
-          justification = matchedGov.justification || 'Justificativa registrada na Governança';
-          responsible = matchedGov.approver?.name || matchedGov.requester?.name || 'Gestor Autorizado';
-          changeDate = matchedGov.approvalDate ? matchedGov.approvalDate.toISOString() : (matchedGov.createdAt ? matchedGov.createdAt.toISOString() : null);
-          governanceStatus = matchedGov.status || 'APROVADO';
-          governanceId = matchedGov.id;
-          if (matchedGov.evidences && matchedGov.evidences.length > 0) {
-            evidence = {
-              id: matchedGov.evidences[0].id,
-              fileName: matchedGov.evidences[0].fileName,
-              filePath: matchedGov.evidences[0].filePath,
-              fileType: matchedGov.evidences[0].fileType
-            };
-          }
-        } else {
-          governanceStatus = 'Governança pendente';
-          justification = 'Alteração sem justificativa cadastrada na Governança';
-          responsible = 'Pendente';
-        }
-      }
-
-      detailedItems.push({
-        id: `${row.costCenterId}_${row.roleId}`,
-        initialCompetence,
-        finalCompetence,
-        contractId: row.contractId,
-        contractName: row.contractName,
-        location: row.location,
-        costCenterId: row.costCenterId,
-        costCenterCode: row.costCenterCode,
-        costCenterDesc: row.costCenterDesc,
-        roleId: row.roleId,
-        roleTitle: row.roleTitle,
-        qtyInitial,
-        qtyFinal,
-        variation,
-        pctVariation,
-        movementType,
-        justification,
-        responsible,
-        changeDate,
-        evidence,
-        governanceStatus,
-        governanceId
-      });
-    }
-
-    // --- 5. Executive KPIs ---
-    let totalInitial = 0;
-    let totalFinal = 0;
-    let additions = 0;
-    let reductions = 0;
-    const contractsWithChange = new Set<string>();
-    const locationsWithChange = new Set<string>();
-    const rolesWithChange = new Set<string>();
-    let unjustifiedChangesCount = 0;
-
-    for (const item of detailedItems) {
-      totalInitial += item.qtyInitial;
-      totalFinal += item.qtyFinal;
-
-      if (item.variation > 0) {
-        additions += item.variation;
-      } else if (item.variation < 0) {
-        reductions += Math.abs(item.variation);
-      }
-
-      if (item.variation !== 0) {
-        contractsWithChange.add(item.contractName);
-        locationsWithChange.add(item.location);
-        rolesWithChange.add(item.roleTitle);
-
-        if (item.governanceStatus === 'Governança pendente') {
-          unjustifiedChangesCount += 1;
-        }
-      }
-    }
-
-    const netBalance = additions - reductions;
-    const totalVariation = totalFinal - totalInitial;
-    const totalPctVariation = totalInitial === 0 ? 0 : (totalVariation / totalInitial) * 100;
-    const totalAlteredFTE = additions + reductions;
-    const alteredPercentage = totalInitial === 0 ? 0 : (totalAlteredFTE / totalInitial) * 100;
-
-    const kpis = {
-      totalInitial,
-      totalFinal,
-      variation: totalVariation,
-      pctVariation: totalPctVariation,
-      additions,
-      reductions,
-      netBalance,
-      contractsChangedCount: contractsWithChange.size,
-      locationsChangedCount: locationsWithChange.size,
-      rolesChangedCount: rolesWithChange.size,
-      unjustifiedChangesCount,
-      alteredPercentage
-    };
-
-    // --- 6. Historical Evolution Chart (Barras + Linha) ---
-    // Calculate total FTE for every competence in historicalCompetences
-    const evolutionMap: Record<string, { fte: number; rows: RowEntry[] }> = {};
-    for (const comp of historicalCompetences) {
-      evolutionMap[comp] = { fte: 0, rows: [] };
-    }
-
-    for (const row of allRows) {
-      // Apply same filters
-      if (locations.length > 0 && !locations.includes(row.location)) continue;
-      if (roles.length > 0 && !roles.includes(row.roleTitle)) continue;
-
-      for (const comp of historicalCompetences) {
-        const val = row.compValues[comp] || 0;
-        evolutionMap[comp].fte += val;
-      }
-    }
-
-    const evolutionChartData: any[] = [];
-    let prevFte: number | null = null;
-    for (let i = 0; i < historicalCompetences.length; i++) {
-      const comp = historicalCompetences[i];
-      const curFte = evolutionMap[comp].fte;
-
-      let pctVar = 0;
-      if (prevFte !== null && prevFte > 0) {
-        pctVar = ((curFte - prevFte) / prevFte) * 100;
-      }
-
-      // Calculate additions/reductions from prev comp
-      let compAdditions = 0;
-      let compReductions = 0;
-      const compContracts = new Set<string>();
-      const compRoles = new Set<string>();
-
-      if (i > 0) {
-        const prevComp = historicalCompetences[i - 1];
-        for (const row of allRows) {
-          if (locations.length > 0 && !locations.includes(row.location)) continue;
-          if (roles.length > 0 && !roles.includes(row.roleTitle)) continue;
-
-          const pVal = row.compValues[prevComp] || 0;
-          const cVal = row.compValues[comp] || 0;
-          const diff = cVal - pVal;
-          if (diff > 0) {
-            compAdditions += diff;
-            compContracts.add(row.contractName);
-            compRoles.add(row.roleTitle);
-          } else if (diff < 0) {
-            compReductions += Math.abs(diff);
-            compContracts.add(row.contractName);
-            compRoles.add(row.roleTitle);
-          }
-        }
-      }
-
-      evolutionChartData.push({
-        competence: comp,
-        totalFte: curFte,
-        pctVariation: prevFte === null ? null : parseFloat(pctVar.toFixed(2)),
-        additions: compAdditions,
-        reductions: compReductions,
-        netBalance: compAdditions - compReductions,
-        contractsChanged: compContracts.size,
-        rolesChanged: compRoles.size
-      });
-
-      prevFte = curFte;
-    }
-
-    // --- 7. Contract Comparison (Horizontal Bars) ---
-    const contractMap = new Map<string, {
-      contract: string;
-      qtyInitial: number;
-      qtyFinal: number;
-      rolesDelta: Map<string, number>;
-      locsDelta: Map<string, number>;
-    }>();
-
-    for (const item of detailedItems) {
-      if (!contractMap.has(item.contractName)) {
-        contractMap.set(item.contractName, {
-          contract: item.contractName,
-          qtyInitial: 0,
-          qtyFinal: 0,
-          rolesDelta: new Map(),
-          locsDelta: new Map()
-        });
-      }
-      const cEntry = contractMap.get(item.contractName)!;
-      cEntry.qtyInitial += item.qtyInitial;
-      cEntry.qtyFinal += item.qtyFinal;
-
-      if (item.variation !== 0) {
-        cEntry.rolesDelta.set(item.roleTitle, (cEntry.rolesDelta.get(item.roleTitle) || 0) + item.variation);
-        cEntry.locsDelta.set(item.location, (cEntry.locsDelta.get(item.location) || 0) + item.variation);
-      }
-    }
-
-    const contractChartData = Array.from(contractMap.values()).map(c => {
-      const variation = c.qtyFinal - c.qtyInitial;
-      const pctVariation = c.qtyInitial === 0 ? (c.qtyFinal > 0 ? 100 : 0) : ((variation / c.qtyInitial) * 100);
-
-      // find top altered role
-      let topRole = '-';
-      let maxRoleAbs = 0;
-      c.rolesDelta.forEach((val, r) => {
-        if (Math.abs(val) > maxRoleAbs) {
-          maxRoleAbs = Math.abs(val);
-          topRole = `${r} (${val > 0 ? '+' : ''}${val})`;
-        }
-      });
-
-      // find top altered location
-      let topLocation = '-';
-      let maxLocAbs = 0;
-      c.locsDelta.forEach((val, l) => {
-        if (Math.abs(val) > maxLocAbs) {
-          maxLocAbs = Math.abs(val);
-          topLocation = `${l} (${val > 0 ? '+' : ''}${val})`;
-        }
-      });
-
-      return {
-        contract: c.contract,
-        qtyInitial: c.qtyInitial,
-        qtyFinal: c.qtyFinal,
-        variation,
-        pctVariation: parseFloat(pctVariation.toFixed(1)),
-        topRole,
-        topLocation,
-        status: variation > 0 ? 'aumento' : variation < 0 ? 'reducao' : 'sem_alteracao'
-      };
-    }).sort((a, b) => Math.abs(b.variation) - Math.abs(a.variation));
-
-    // --- 8. Location Comparison Hierarchical Drill-Down (Contrato -> Localidade -> Cargo) ---
-    const treeRoot = new Map<string, any>();
-    for (const item of detailedItems) {
-      if (!treeRoot.has(item.contractName)) {
-        treeRoot.set(item.contractName, {
-          name: item.contractName,
-          qtyInitial: 0,
-          qtyFinal: 0,
-          locations: new Map<string, any>()
-        });
-      }
-      const cNode = treeRoot.get(item.contractName);
-      cNode.qtyInitial += item.qtyInitial;
-      cNode.qtyFinal += item.qtyFinal;
-
-      if (!cNode.locations.has(item.location)) {
-        cNode.locations.set(item.location, {
-          name: item.location,
-          qtyInitial: 0,
-          qtyFinal: 0,
-          roles: new Map<string, any>()
-        });
-      }
-      const lNode = cNode.locations.get(item.location);
-      lNode.qtyInitial += item.qtyInitial;
-      lNode.qtyFinal += item.qtyFinal;
-
-      if (!lNode.roles.has(item.roleTitle)) {
-        lNode.roles.set(item.roleTitle, {
-          name: item.roleTitle,
-          qtyInitial: 0,
-          qtyFinal: 0,
-          costCenterCode: item.costCenterCode
-        });
-      }
-      const rNode = lNode.roles.get(item.roleTitle);
-      rNode.qtyInitial += item.qtyInitial;
-      rNode.qtyFinal += item.qtyFinal;
-    }
-
-    const locationTree = Array.from(treeRoot.values()).map(cNode => {
-      const cVar = cNode.qtyFinal - cNode.qtyInitial;
-      const cPct = cNode.qtyInitial === 0 ? (cNode.qtyFinal > 0 ? 100 : 0) : ((cVar / cNode.qtyInitial) * 100);
-
-      const locationsArr = Array.from(cNode.locations.values()).map((lNode: any) => {
-        const lVar = lNode.qtyFinal - lNode.qtyInitial;
-        const lPct = lNode.qtyInitial === 0 ? (lNode.qtyFinal > 0 ? 100 : 0) : ((lVar / lNode.qtyInitial) * 100);
-
-        const rolesArr = Array.from(lNode.roles.values()).map((rNode: any) => {
-          const rVar = rNode.qtyFinal - rNode.qtyInitial;
-          const rPct = rNode.qtyInitial === 0 ? (rNode.qtyFinal > 0 ? 100 : 0) : ((rVar / rNode.qtyInitial) * 100);
-          return {
-            name: rNode.name,
-            qtyInitial: rNode.qtyInitial,
-            qtyFinal: rNode.qtyFinal,
-            variation: rVar,
-            pctVariation: parseFloat(rPct.toFixed(1)),
-            costCenterCode: rNode.costCenterCode
-          };
-        }).sort((a: any, b: any) => Math.abs(b.variation) - Math.abs(a.variation));
-
-        return {
-          name: lNode.name,
-          qtyInitial: lNode.qtyInitial,
-          qtyFinal: lNode.qtyFinal,
-          variation: lVar,
-          pctVariation: parseFloat(lPct.toFixed(1)),
-          roles: rolesArr
-        };
-      }).sort((a: any, b: any) => Math.abs(b.variation) - Math.abs(a.variation));
-
-      return {
-        name: cNode.name,
-        qtyInitial: cNode.qtyInitial,
-        qtyFinal: cNode.qtyFinal,
-        variation: cVar,
-        pctVariation: parseFloat(cPct.toFixed(1)),
-        locations: locationsArr
-      };
-    }).sort((a, b) => Math.abs(b.variation) - Math.abs(a.variation));
-
-    // --- 9. Rankings of Biggest Movements (Aumentos / Reduções por Contrato, Localidade, Cargo) ---
-    const buildRankings = (keyGetter: (item: any) => string) => {
-      const agg = new Map<string, { name: string; qtyInitial: number; qtyFinal: number; delta: number }>();
-      for (const item of detailedItems) {
-        const k = keyGetter(item);
-        if (!agg.has(k)) {
-          agg.set(k, { name: k, qtyInitial: 0, qtyFinal: 0, delta: 0 });
-        }
-        const entry = agg.get(k)!;
-        entry.qtyInitial += item.qtyInitial;
-        entry.qtyFinal += item.qtyFinal;
-        entry.delta += item.variation;
-      }
-      const list = Array.from(agg.values());
-      const increases = list
-        .filter(x => x.delta > 0)
-        .sort((a, b) => b.delta - a.delta)
-        .slice(0, 10);
-      const reductions = list
-        .filter(x => x.delta < 0)
-        .sort((a, b) => a.delta - b.delta)
-        .slice(0, 10);
-      return { increases, reductions };
-    };
-
-    const rankings = {
-      byContract: buildRankings(i => i.contractName),
-      byLocation: buildRankings(i => i.location),
-      byRole: buildRankings(i => i.roleTitle)
-    };
-
-    // --- 10. Role Composition Analysis (Composição do Quadro) ---
-    const roleCompositionMap = new Map<string, { role: string; initial: number; final: number }>();
-    for (const item of detailedItems) {
-      if (!roleCompositionMap.has(item.roleTitle)) {
-        roleCompositionMap.set(item.roleTitle, { role: item.roleTitle, initial: 0, final: 0 });
-      }
-      const r = roleCompositionMap.get(item.roleTitle)!;
-      r.initial += item.qtyInitial;
-      r.final += item.qtyFinal;
-    }
-
-    const roleComposition = Array.from(roleCompositionMap.values())
-      .map(r => {
-        const variation = r.final - r.initial;
-        const shareInitial = totalInitial > 0 ? (r.initial / totalInitial) * 100 : 0;
-        const shareFinal = totalFinal > 0 ? (r.final / totalFinal) * 100 : 0;
-        const shareDiff = shareFinal - shareInitial;
-        return {
-          role: r.role,
-          initial: r.initial,
-          final: r.final,
-          variation,
-          shareInitial: parseFloat(shareInitial.toFixed(2)),
-          shareFinal: parseFloat(shareFinal.toFixed(2)),
-          shareDiff: parseFloat(shareDiff.toFixed(2))
-        };
-      })
-      .sort((a, b) => (b.final + b.initial) - (a.final + a.initial))
-      .slice(0, 20); // top 20 roles
-
-    // --- 11. Automated Executive Insights ---
-    const insights: string[] = [];
-
-    if (totalVariation > 0) {
-      insights.push(`O quadro aumentou ${totalVariation.toFixed(0)} FTEs entre ${initialCompetence} e ${finalCompetence} (+${totalPctVariation.toFixed(1)}%).`);
-    } else if (totalVariation < 0) {
-      insights.push(`O quadro reduziu ${Math.abs(totalVariation).toFixed(0)} FTEs entre ${initialCompetence} e ${finalCompetence} (${totalPctVariation.toFixed(1)}%).`);
-    } else {
-      insights.push(`O total de efetivo manteve-se estável em ${totalFinal.toFixed(0)} FTEs entre ${initialCompetence} e ${finalCompetence}.`);
-    }
-
-    if (rankings.byContract.increases.length > 0) {
-      const topContractInc = rankings.byContract.increases[0];
-      insights.push(`O Contrato ${topContractInc.name} apresentou o maior crescimento, com +${topContractInc.delta.toFixed(0)} FTEs.`);
-    }
-
-    if (rankings.byLocation.reductions.length > 0) {
-      const topLocRed = rankings.byLocation.reductions[0];
-      insights.push(`A Localidade ${topLocRed.name} apresentou a maior redução, com ${topLocRed.delta.toFixed(0)} FTEs.`);
-    }
-
-    if (rankings.byRole.increases.length > 0) {
-      const topRoleInc = rankings.byRole.increases[0];
-      insights.push(`O cargo ${topRoleInc.name} apresentou o maior acréscimo (+${topRoleInc.delta.toFixed(0)} FTEs).`);
-    }
-
-    if (unjustifiedChangesCount > 0) {
-      insights.push(`${unjustifiedChangesCount} alteraç${unjustifiedChangesCount > 1 ? 'ões' : 'ão'} de FTE não possu${unjustifiedChangesCount > 1 ? 'em' : 'i'} justificativa cadastrada na Governança.`);
-    }
-
-    // Growth concentration insight
-    if (additions > 0 && rankings.byContract.increases.length >= 2) {
-      const top2Sum = rankings.byContract.increases.slice(0, 2).reduce((sum, c) => sum + c.delta, 0);
-      const concentration = Math.round((top2Sum / additions) * 100);
-      if (concentration >= 40) {
-        insights.push(`${concentration}% do crescimento do quadro está concentrado em dois contratos (${rankings.byContract.increases[0].name} e ${rankings.byContract.increases[1].name}).`);
-      }
+      evolutionChart = evolutionChart.slice(startIdx, startIdx + 6);
     }
 
     return NextResponse.json({
-      kpis,
-      evolutionChartData,
-      contractChartData,
-      locationTree,
-      rankings,
-      roleComposition,
-      insights,
-      detailedItems
+      selectedCompetence,
+      previousCompetence,
+      activeCompetences,
+      cards: {
+        totalPA: Math.round(grandTotalPA),
+        totalForecast: Math.round(grandTotalFC),
+        totalRealizado: Math.round(grandTotalReal),
+        difPA: Math.round(difPA),
+        difForecast: Math.round(difForecast),
+        pctPA: pctPA !== null ? Math.round(pctPA * 100) / 100 : null,
+        pctForecast: pctForecast !== null ? Math.round(pctForecast * 100) / 100 : null
+      },
+      topMaioresDesvios,
+      topMenoresDesvios,
+      evolutionChart,
+      complementary: {
+        contractsAbovePA: {
+          count: abovePAContracts.length,
+          percentage: totalEvaluatedContracts > 0 ? Math.round((abovePAContracts.length / totalEvaluatedContracts) * 1000) / 10 : 0,
+          totalContracts: totalEvaluatedContracts
+        },
+        contractsOnLimitPA: {
+          count: onLimitPAContracts.length,
+          percentage: totalEvaluatedContracts > 0 ? Math.round((onLimitPAContracts.length / totalEvaluatedContracts) * 1000) / 10 : 0
+        },
+        contractsBelowPA: {
+          count: belowPAContracts.length,
+          percentage: totalEvaluatedContracts > 0 ? Math.round((belowPAContracts.length / totalEvaluatedContracts) * 1000) / 10 : 0
+        },
+        excedenteFTE: {
+          positiveSum: Math.round(positiveExcessoSum),
+          deficitSum: Math.round(negativeDeficitSum),
+          netBalance: Math.round(positiveExcessoSum + negativeDeficitSum)
+        },
+        monthlyVariation: {
+          currentReal: Math.round(grandTotalReal),
+          previousReal: Math.round(prevRealTotal),
+          diff: Math.round(momDiff),
+          pct: Math.round(momPct * 100) / 100,
+          trend: momDiff > 0 ? 'up' : (momDiff < 0 ? 'down' : 'stable')
+        },
+        marginStatus: {
+          margemTotalPA: Math.round(margemTotalPA),
+          margemTotalForecast: Math.round(margemTotalForecast),
+          capacidadeNovasVagas: Math.round(capacidadeNovasVagas),
+          contratosComMargem,
+          contratosRequerAnalise,
+          contratosSemMargem
+        }
+      }
     });
   } catch (error: any) {
     console.error('[API Comparativo Error]', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Erro interno ao processar dados comparativos.' }, { status: 500 });
   }
 }
