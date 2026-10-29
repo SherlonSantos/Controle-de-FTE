@@ -27,7 +27,8 @@ import {
   XCircle,
   Users,
   Search,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -954,7 +955,7 @@ export default function ComparativoExecutivoPage() {
 
         {/* 4. Gráfico Comparativo — Evolução Histórica (PA x Forecast x Realizado) */}
         <section className={`rounded-xl border shadow-xl p-5 flex flex-col transition-all ${isDark ? "bg-[#111c33] border-slate-800/90 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
-          {/* Header do Card com Totais Acumulados do Ano e Controles */}
+          {/* Header com Título Executivo, Cards de Acumulado e Controles */}
           <div className={`flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
             <div>
               <h3 className={`font-extrabold text-base md:text-lg tracking-wide uppercase flex items-center gap-2.5 ${isDark ? "text-white" : "text-slate-900"}`}>
@@ -962,19 +963,19 @@ export default function ComparativoExecutivoPage() {
                 Evolução Histórica | PA x Forecast x Realizado
               </h3>
               <p className={`text-xs md:text-sm mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                Comparativo mensal e acumulado do ano de efetivo planejado, baseline ajustado e realizado
+                Acompanhamento mensal cronológico e consolidado anual de efetivo e financeiro
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Card 1: PA Acumulado */}
-              <div className={`rounded-xl px-4 py-2 sm:px-4.5 sm:py-2.5 flex items-center gap-3 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-blue-900/60" : "bg-blue-50/80 border-blue-300 shadow-sm"}`}>
+              <div className={`rounded-xl px-4 py-2 flex items-center gap-2.5 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-blue-900/60" : "bg-blue-50/80 border-blue-300 shadow-sm"}`}>
                 <div className="w-2.5 h-2.5 rounded-full bg-[#1d4ed8] shrink-0" />
                 <div>
-                  <div className="text-xs text-blue-400 font-extrabold uppercase tracking-wider">
+                  <div className="text-[11px] text-blue-400 font-extrabold uppercase tracking-wider">
                     {chartMetric === "valor" ? "PA Acumulado (R$)" : "PA Acumulado (FTE)"}
                   </div>
-                  <div className={`text-base sm:text-lg md:text-xl font-black font-mono leading-tight ${isDark ? "text-white" : "text-blue-950"}`}>
+                  <div className={`text-sm sm:text-base md:text-lg font-black font-mono leading-tight ${isDark ? "text-white" : "text-blue-950"}`}>
                     {isLoading
                       ? "..."
                       : chartMetric === "valor"
@@ -985,13 +986,13 @@ export default function ComparativoExecutivoPage() {
               </div>
 
               {/* Card 2: Realizado Acumulado */}
-              <div className={`rounded-xl px-4 py-2 sm:px-4.5 sm:py-2.5 flex items-center gap-3 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-emerald-900/60" : "bg-emerald-50/80 border-emerald-300 shadow-sm"}`}>
+              <div className={`rounded-xl px-4 py-2 flex items-center gap-2.5 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-emerald-900/60" : "bg-emerald-50/80 border-emerald-300 shadow-sm"}`}>
                 <div className="w-2.5 h-2.5 rounded-full bg-[#00CE7C] shrink-0" />
                 <div>
-                  <div className="text-xs text-emerald-400 font-extrabold uppercase tracking-wider">
+                  <div className="text-[11px] text-emerald-400 font-extrabold uppercase tracking-wider">
                     {chartMetric === "valor" ? "Real Acumulado (R$)" : "Real Acumulado (FTE)"}
                   </div>
-                  <div className={`text-base sm:text-lg md:text-xl font-black font-mono leading-tight ${isDark ? "text-white" : "text-emerald-950"}`}>
+                  <div className={`text-sm sm:text-base md:text-lg font-black font-mono leading-tight ${isDark ? "text-white" : "text-emerald-950"}`}>
                     {isLoading
                       ? "..."
                       : chartMetric === "valor"
@@ -1002,12 +1003,12 @@ export default function ComparativoExecutivoPage() {
               </div>
 
               {/* Card 3: Diferença Acumulada */}
-              <div className={`rounded-xl px-4 py-2 sm:px-4.5 sm:py-2.5 flex items-center gap-3 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-slate-700/80" : "bg-slate-50 border-slate-300 shadow-sm"}`}>
+              <div className={`rounded-xl px-4 py-2 flex items-center gap-2.5 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-slate-700/80" : "bg-slate-50 border-slate-300 shadow-sm"}`}>
                 <div>
-                  <div className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  <div className={`text-[11px] font-extrabold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                     {chartMetric === "valor" ? "Dif. Acumulada (R$)" : "Dif. Acumulada (FTE)"}
                   </div>
-                  <div className={`text-base sm:text-lg md:text-xl font-black font-mono leading-tight ${
+                  <div className={`text-sm sm:text-base md:text-lg font-black font-mono leading-tight ${
                     chartMetric === "valor"
                       ? (financial.difValor < 0 ? 'text-[#00CE7C]' : financial.difValor > 0 ? 'text-red-400' : isDark ? 'text-slate-300' : 'text-slate-800')
                       : ((financial.accumulatedDifFte || 0) > 0 ? 'text-red-400' : (financial.accumulatedDifFte || 0) < 0 ? 'text-[#00CE7C]' : isDark ? 'text-slate-300' : 'text-slate-800')
@@ -1026,7 +1027,7 @@ export default function ComparativoExecutivoPage() {
                 <button
                   type="button"
                   onClick={() => setChartMetric("fte")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMetric === "fte"
                       ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
@@ -1037,7 +1038,7 @@ export default function ComparativoExecutivoPage() {
                 <button
                   type="button"
                   onClick={() => setChartMetric("valor")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMetric === "valor"
                       ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
@@ -1052,7 +1053,7 @@ export default function ComparativoExecutivoPage() {
                 <button
                   type="button"
                   onClick={() => setChartMonths(6)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMonths === 6
                       ? 'bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold'
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
@@ -1063,7 +1064,7 @@ export default function ComparativoExecutivoPage() {
                 <button
                   type="button"
                   onClick={() => setChartMonths(12)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMonths === 12
                       ? 'bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold'
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
@@ -1075,314 +1076,476 @@ export default function ComparativoExecutivoPage() {
             </div>
           </div>
 
-          {/* Gráfico Recharts com 3 Barras Alternáveis e Rótulos Numéricos */}
-          <div className="h-88 sm:h-96 md:h-[430px] w-full mt-5">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={evolutionChart}
-                margin={{ top: 28, right: 15, left: -5, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false} />
-                <XAxis
-                  dataKey="competence"
-                  stroke={isDark ? "#64748b" : "#94a3b8"}
-                  axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
-                  tickLine={false}
-                  tick={({ x, y, payload }: any) => {
-                    const isAccum = String(payload.value || "").includes("Acumulado");
-                    const isSelected = payload.value === selectedCompetence;
-                    return (
-                      <g transform={`translate(${x},${y})`}>
-                        <text
-                          x={0}
-                          y={0}
-                          dy={14}
-                          textAnchor="middle"
-                          fill={
-                            isAccum
-                              ? (isDark ? "#38bdf8" : "#0284c7")
-                              : isSelected
-                              ? "#22c7ac"
-                              : (isDark ? "#94a3b8" : "#475569")
-                          }
-                          fontSize={isAccum ? 12 : 11}
-                          fontWeight={isAccum || isSelected ? 800 : 600}
+          {/* PAINEL EXECUTIVO DUAL: Evolução Mensal (Escala Própria) + Acumulado Anual Dedicado */}
+          {(() => {
+            // Separa os dados mensais e o item acumulado
+            const monthlyChartData = evolutionChart.filter(
+              item => !item.isAccumulated && !item.competence.includes("Acumulado")
+            );
+
+            const accumulatedItem = evolutionChart.find(
+              item => item.isAccumulated || item.competence.includes("Acumulado")
+            ) || {
+              competence: "Acumulado 2026",
+              isAccumulated: true,
+              pa: financial.accumulatedPaFte || 0,
+              forecast: financial.accumulatedFcFte || 0,
+              realizado: financial.accumulatedRealFte || 0,
+              valPa: financial.totalPaValor || 0,
+              valForecast: financial.totalForecastValor || 0,
+              valReal: financial.totalRealValor || 0,
+              difValor: financial.difValor || 0,
+              difFTE: financial.accumulatedDifFte || 0,
+              hasRealizado: (financial.accumulatedRealFte || 0) > 0,
+            };
+
+            const accumulatedChartData = [accumulatedItem];
+
+            // Formatador conciso para os números nas barras (sem R$ repetitivo para não embolar)
+            const formatBarLabel = (v: any) => {
+              if (v === null || v === undefined) return "";
+              const num = Number(v);
+              if (isNaN(num) || num <= 0) return "";
+              if (chartMetric === "valor") {
+                if (num >= 1_000_000) {
+                  return `${(num / 1_000_000).toFixed(2).replace(".", ",")}M`;
+                }
+                if (num >= 1_000) {
+                  return `${Math.round(num / 1_000)}K`;
+                }
+                return Math.round(num).toString();
+              } else {
+                return formatNumber(Math.round(num));
+              }
+            };
+
+            return (
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-5">
+                {/* 1. GRÁFICO DE EVOLUÇÃO MENSAL (Escala 100% proporcional aos meses) */}
+                <div className={`xl:col-span-8 2xl:col-span-9 rounded-xl border p-4 flex flex-col justify-between ${isDark ? "bg-[#0b1222]/80 border-slate-800" : "bg-slate-50/70 border-slate-200"}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800/60 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#22c7ac]" />
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                        Evolução Mensal ({monthlyChartData.length} competências) • Escala Mensal
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-400">
+                      Rótulos escalonados • Valores em {chartMetric === "valor" ? "Milhões de R$" : "FTEs"}
+                    </span>
+                  </div>
+
+                  <div className="h-80 sm:h-96 md:h-[390px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart
+                        data={monthlyChartData}
+                        margin={{ top: 32, right: 15, left: -5, bottom: 5 }}
+                        barGap={6}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false} />
+                        <XAxis
+                          dataKey="competence"
+                          stroke={isDark ? "#64748b" : "#94a3b8"}
+                          axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
+                          tickLine={false}
+                          tick={({ x, y, payload }: any) => {
+                            const isSelected = payload.value === selectedCompetence;
+                            return (
+                              <g transform={`translate(${x},${y})`}>
+                                <text
+                                  x={0}
+                                  y={0}
+                                  dy={14}
+                                  textAnchor="middle"
+                                  fill={isSelected ? "#22c7ac" : (isDark ? "#94a3b8" : "#475569")}
+                                  fontSize={11}
+                                  fontWeight={isSelected ? 800 : 600}
+                                >
+                                  {payload.value}
+                                </text>
+                              </g>
+                            );
+                          }}
+                        />
+                        <YAxis
+                          stroke={isDark ? "#64748b" : "#94a3b8"}
+                          tick={{ fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 600 }}
+                          axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
+                          tickLine={false}
+                          domain={[0, 'auto']}
+                          tickFormatter={(v: any) => chartMetric === 'valor' ? formatMoneyCompact(v) : formatNumber(v)}
+                        />
+                        <RechartsTooltip
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              const hasReal = data.hasRealizado;
+                              return (
+                                <div className={`border rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[270px] ${isDark ? "bg-[#0d1629] border-slate-700/80 text-white" : "bg-white border-slate-300 text-slate-800"}`}>
+                                  <div className={`font-bold border-b pb-1.5 flex items-center justify-between ${isDark ? "border-slate-700/60 text-white" : "border-slate-200 text-slate-900"}`}>
+                                    <span className="text-sm font-extrabold">Competência {label}</span>
+                                    {label === selectedCompetence && (
+                                      <span className="text-[10px] bg-[#22c7ac]/20 text-[#22c7ac] px-2 py-0.5 rounded font-bold">
+                                        Ativa
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {chartMetric === 'valor' ? (
+                                    <div className="space-y-1">
+                                      <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
+                                        Valores Mensais (R$)
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                                          <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
+                                        </span>
+                                        <span className="font-mono font-bold">{formatMoney(data.valPa)}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
+                                          <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast (R$):
+                                        </span>
+                                        <span className="font-mono font-bold">{formatMoney(data.valForecast)}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                                          <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Total Real:
+                                        </span>
+                                        <span className="font-mono font-bold">
+                                          {hasReal ? formatMoney(data.valReal) : "Não realizado"}
+                                        </span>
+                                      </div>
+                                      {data.valReal > 0 && data.valPa > 0 && (
+                                        <div className={`flex items-center justify-between text-[11px] font-semibold pt-1 border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+                                          <span className={isDark ? "text-slate-400" : "text-slate-500"}>Dif. Valor (Real - PA):</span>
+                                          <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                            {data.difValor > 0 ? '+' : ''}{formatMoney(data.difValor)}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
+                                        Quantitativo Mensal (FTE)
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                                          <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
+                                        </span>
+                                        <span className="font-mono font-bold">{formatNumber(data.pa)} FTEs</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
+                                          <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast:
+                                        </span>
+                                        <span className="font-mono font-bold">{formatNumber(data.forecast)} FTEs</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                                          <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
+                                        </span>
+                                        <span className="font-mono font-bold">
+                                          {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
+                                        </span>
+                                      </div>
+                                      {hasReal && (
+                                        <div className={`pt-1 flex items-center justify-between text-[11px] font-semibold border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+                                          <span className={isDark ? "text-slate-400" : "text-slate-500"}>Desvio FTE (Real - PA):</span>
+                                          <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
+                                            {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+
+                        {/* Barra 1: PA (Rótulo no nível inferior: offset=5) */}
+                        <Bar
+                          dataKey={chartMetric === "valor" ? "valPa" : "pa"}
+                          name={chartMetric === "valor" ? "PA (R$)" : "PA"}
+                          fill="#1d4ed8"
+                          radius={[4, 4, 0, 0]}
+                          barSize={chartMonths === 6 ? 26 : 16}
                         >
-                          {isAccum ? "★ ACUMULADO" : payload.value}
-                        </text>
-                      </g>
-                    );
-                  }}
-                />
-                <YAxis
-                  stroke={isDark ? "#64748b" : "#94a3b8"}
-                  tick={{ fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 600 }}
-                  axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
-                  tickLine={false}
-                  domain={[0, 'auto']}
-                  tickFormatter={(v: any) => chartMetric === 'valor' ? formatMoneyCompact(v) : formatNumber(v)}
-                />
-                <RechartsTooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      const hasReal = data.hasRealizado;
-                      const hasFin = data.valPa > 0 || data.valReal > 0;
-                      const isAccum = Boolean(data.isAccumulated) || String(label || "").includes("Acumulado");
-                      return (
-                        <div className={`border rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[270px] ${isDark ? "bg-[#0d1629] border-slate-700/80 text-white" : "bg-white border-slate-300 text-slate-800"}`}>
-                          <div className={`font-bold border-b pb-1.5 flex items-center justify-between ${isDark ? "border-slate-700/60 text-white" : "border-slate-200 text-slate-900"}`}>
-                            <span className="text-sm font-extrabold flex items-center gap-1.5">
-                              {isAccum ? (
-                                <span className="text-sky-400 font-black">★ Acumulado do Ano</span>
-                              ) : (
-                                `Competência ${label}`
-                              )}
-                            </span>
-                            {label === selectedCompetence && !isAccum && (
-                              <span className="text-[10px] bg-[#22c7ac]/20 text-[#22c7ac] px-2 py-0.5 rounded font-bold">
-                                Ativa
-                              </span>
-                            )}
-                            {isAccum && (
-                              <span className="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded font-bold">
-                                Soma Anual
-                              </span>
-                            )}
-                          </div>
+                          <LabelList
+                            dataKey={chartMetric === "valor" ? "valPa" : "pa"}
+                            position="top"
+                            offset={5}
+                            fill={isDark ? "#93c5fd" : "#1e40af"}
+                            fontSize={11}
+                            fontWeight={800}
+                            formatter={formatBarLabel}
+                          />
+                          {monthlyChartData.map((entry, index) => (
+                            <Cell
+                              key={`pa-${index}`}
+                              fill={entry.competence === selectedCompetence ? "#3b82f6" : "#1d4ed8"}
+                            />
+                          ))}
+                        </Bar>
 
-                          {chartMetric === 'valor' ? (
-                            <>
-                              {/* Seção Financeira (Prioritária no Modo Valor) */}
-                              <div className="space-y-1">
-                                <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
-                                  {isAccum ? "Valores Financeiros Acumulados (R$)" : "Valores Financeiros (R$)"}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
-                                    <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
-                                  </span>
-                                  <span className="font-mono font-bold">{formatMoney(data.valPa)}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
-                                    <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast (R$):
-                                  </span>
-                                  <span className="font-mono font-bold">{formatMoney(data.valForecast)}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                                    <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Total Real:
-                                  </span>
-                                  <span className="font-mono font-bold">
-                                    {hasReal ? formatMoney(data.valReal) : "Não realizado"}
-                                  </span>
-                                </div>
-                                {data.valReal > 0 && data.valPa > 0 && (
-                                  <div className={`flex items-center justify-between text-[11px] font-semibold pt-1 border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
-                                    <span className={isDark ? "text-slate-400" : "text-slate-500"}>Dif. Valor (Real - PA):</span>
-                                    <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                      {data.difValor > 0 ? '+' : ''}{formatMoney(data.difValor)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                        {/* Barra 2: Forecast (Rótulo escalonado no nível superior: offset=24 para NUNCA embolar) */}
+                        <Bar
+                          dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
+                          name={chartMetric === "valor" ? "Forecast (R$)" : "Forecast"}
+                          fill="#6366f1"
+                          radius={[4, 4, 0, 0]}
+                          barSize={chartMonths === 6 ? 26 : 16}
+                        >
+                          <LabelList
+                            dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
+                            position="top"
+                            offset={24}
+                            fill={isDark ? "#c7d2fe" : "#4338ca"}
+                            fontSize={11}
+                            fontWeight={800}
+                            formatter={formatBarLabel}
+                          />
+                          {monthlyChartData.map((entry, index) => (
+                            <Cell
+                              key={`fc-${index}`}
+                              fill={entry.competence === selectedCompetence ? "#818cf8" : "#6366f1"}
+                            />
+                          ))}
+                        </Bar>
 
-                              {/* Seção FTE (Secundária) */}
-                              <div className={`pt-2 border-t space-y-1 ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
-                                <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                                  {isAccum ? "Quantitativo Total de FTEs" : "Quantitativo de FTE"}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className={isDark ? "text-slate-400" : "text-slate-600"}>PA / Forecast / Real:</span>
-                                  <span className="font-mono font-semibold">
-                                    {formatNumber(data.pa)} / {formatNumber(data.forecast)} / {hasReal ? formatNumber(data.realizado) : "-"}
-                                  </span>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              {/* Seção FTE (Prioritária no Modo Quantidade) */}
-                              <div className="space-y-1">
-                                <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
-                                  {isAccum ? "Quantitativo Total de FTEs" : "Quantitativo de FTE"}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
-                                    <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
-                                  </span>
-                                  <span className="font-mono font-bold">{formatNumber(data.pa)} FTEs</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
-                                    <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast:
-                                  </span>
-                                  <span className="font-mono font-bold">{formatNumber(data.forecast)} FTEs</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                                    <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
-                                  </span>
-                                  <span className="font-mono font-bold">
-                                    {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
-                                  </span>
-                                </div>
-                                {hasReal && (
-                                  <div className={`pt-1 flex items-center justify-between text-[11px] font-semibold border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
-                                    <span className={isDark ? "text-slate-400" : "text-slate-500"}>Desvio FTE (Real - PA):</span>
-                                    <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
-                                      {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                        {/* Barra 3: Realizado (Rótulo no nível inferior: offset=5) */}
+                        <Bar
+                          dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
+                          name={chartMetric === "valor" ? "Realizado (R$)" : "Realizado"}
+                          fill="#00CE7C"
+                          radius={[4, 4, 0, 0]}
+                          barSize={chartMonths === 6 ? 26 : 16}
+                        >
+                          <LabelList
+                            dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
+                            position="top"
+                            offset={5}
+                            fill={isDark ? "#6ee7b7" : "#047857"}
+                            fontSize={11}
+                            fontWeight={800}
+                            formatter={formatBarLabel}
+                          />
+                          {monthlyChartData.map((entry, index) => (
+                            <Cell
+                              key={`real-${index}`}
+                              fill={entry.competence === selectedCompetence ? "#22c7ac" : "#00CE7C"}
+                              fillOpacity={entry.hasRealizado ? 1 : 0.25}
+                            />
+                          ))}
+                        </Bar>
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-                              {/* Seção Financeira (Secundária) */}
-                              {hasFin && (
-                                <div className={`pt-2 border-t space-y-1 ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
-                                  <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                                    {isAccum ? "Valores Financeiros Acumulados (R$)" : "Valores Financeiros (R$)"}
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-blue-400 font-semibold">PA (R$):</span>
-                                    <span className="font-mono font-bold">{formatMoney(data.valPa)}</span>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-emerald-400 font-semibold">Real (R$):</span>
-                                    <span className="font-mono font-bold">{formatMoney(data.valReal)}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          )}
+                {/* 2. CARD EXECUTIVO: ACUMULADO DO ANO DEDICADO (Escala Própria, Barras Largas, Zero Colisão) */}
+                <div className={`xl:col-span-4 2xl:col-span-3 rounded-xl border p-4 flex flex-col justify-between shadow-lg ${isDark ? "bg-[#0b1222] border-sky-900/50" : "bg-sky-50/70 border-sky-200"}`}>
+                  <div>
+                    {/* Header do Card Acumulado */}
+                    <div className="flex items-center justify-between pb-3 border-b border-sky-800/40">
+                      <div>
+                        <div className="text-xs font-black text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-sky-400" />
+                          Acumulado Anual (2026)
                         </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
+                        <div className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                          Soma de todos os meses do ano
+                        </div>
+                      </div>
+                      <span className="text-[10px] bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded border border-sky-400/30">
+                        Total Ano
+                      </span>
+                    </div>
 
-                {/* Barra 1: PA */}
-                <Bar
-                  dataKey={chartMetric === "valor" ? "valPa" : "pa"}
-                  name={chartMetric === "valor" ? "PA (R$)" : "PA"}
-                  fill="#1d4ed8"
-                  radius={[4, 4, 0, 0]}
-                  barSize={chartMonths === 6 ? 26 : 14}
-                >
-                  <LabelList
-                    dataKey={chartMetric === "valor" ? "valPa" : "pa"}
-                    position="top"
-                    fill={isDark ? "#93c5fd" : "#1e40af"}
-                    fontSize={chartMonths === 6 ? 12 : 10.5}
-                    fontWeight={800}
-                    formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
-                  />
-                  {evolutionChart.map((entry, index) => {
-                    const isAccum = entry.isAccumulated || entry.competence.includes("Acumulado");
-                    const isSelected = entry.competence === selectedCompetence;
-                    const fill = isAccum ? "#2563eb" : isSelected ? "#3b82f6" : "#1d4ed8";
-                    return (
-                      <Cell
-                        key={`pa-${index}`}
-                        fill={fill}
-                        stroke={isAccum ? (isDark ? "#93c5fd" : "#1d4ed8") : "none"}
-                        strokeWidth={isAccum ? 1.5 : 0}
-                      />
-                    );
-                  })}
-                </Bar>
+                    {/* Resumo Numérico de Impacto */}
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className={`rounded-lg p-2.5 border ${isDark ? "bg-blue-950/30 border-blue-900/40" : "bg-blue-50 border-blue-200"}`}>
+                        <div className="text-[10px] text-blue-400 font-extrabold uppercase">PA Acumulado</div>
+                        <div className={`text-sm md:text-base font-black font-mono leading-tight ${isDark ? "text-white" : "text-blue-950"}`}>
+                          {chartMetric === "valor" ? formatMoneyCompact(financial.totalPaValor) : `${formatNumber(financial.accumulatedPaFte || 0)}`}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          {chartMetric === "valor" ? `${formatNumber(financial.accumulatedPaFte || 0)} FTEs` : formatMoney(financial.totalPaValor)}
+                        </div>
+                      </div>
 
-                {/* Barra 2: Forecast */}
-                <Bar
-                  dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
-                  name={chartMetric === "valor" ? "Forecast (R$)" : "Forecast"}
-                  fill="#6366f1"
-                  radius={[4, 4, 0, 0]}
-                  barSize={chartMonths === 6 ? 26 : 14}
-                >
-                  <LabelList
-                    dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
-                    position="top"
-                    fill={isDark ? "#c7d2fe" : "#4338ca"}
-                    fontSize={chartMonths === 6 ? 12 : 10.5}
-                    fontWeight={800}
-                    formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
-                  />
-                  {evolutionChart.map((entry, index) => {
-                    const isAccum = entry.isAccumulated || entry.competence.includes("Acumulado");
-                    const isSelected = entry.competence === selectedCompetence;
-                    const fill = isAccum ? "#7c3aed" : isSelected ? "#818cf8" : "#6366f1";
-                    return (
-                      <Cell
-                        key={`fc-${index}`}
-                        fill={fill}
-                        stroke={isAccum ? (isDark ? "#c7d2fe" : "#6366f1") : "none"}
-                        strokeWidth={isAccum ? 1.5 : 0}
-                      />
-                    );
-                  })}
-                </Bar>
+                      <div className={`rounded-lg p-2.5 border ${isDark ? "bg-emerald-950/30 border-emerald-900/40" : "bg-emerald-50 border-emerald-200"}`}>
+                        <div className="text-[10px] text-emerald-400 font-extrabold uppercase">Real Acumulado</div>
+                        <div className={`text-sm md:text-base font-black font-mono leading-tight ${isDark ? "text-white" : "text-emerald-950"}`}>
+                          {chartMetric === "valor" ? formatMoneyCompact(financial.totalRealValor) : `${formatNumber(financial.accumulatedRealFte || 0)}`}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          {chartMetric === "valor" ? `${formatNumber(financial.accumulatedRealFte || 0)} FTEs` : formatMoney(financial.totalRealValor)}
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Barra 3: Realizado */}
-                <Bar
-                  dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
-                  name={chartMetric === "valor" ? "Realizado (R$)" : "Realizado"}
-                  fill="#00CE7C"
-                  radius={[4, 4, 0, 0]}
-                  barSize={chartMonths === 6 ? 26 : 14}
-                >
-                  <LabelList
-                    dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
-                    position="top"
-                    fill={isDark ? "#6ee7b7" : "#047857"}
-                    fontSize={chartMonths === 6 ? 12 : 10.5}
-                    fontWeight={800}
-                    formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
-                  />
-                  {evolutionChart.map((entry, index) => {
-                    const isAccum = entry.isAccumulated || entry.competence.includes("Acumulado");
-                    const isSelected = entry.competence === selectedCompetence;
-                    const fill = isAccum ? "#10b981" : isSelected ? "#22c7ac" : "#00CE7C";
-                    return (
-                      <Cell
-                        key={`real-${index}`}
-                        fill={fill}
-                        fillOpacity={entry.hasRealizado ? 1 : 0.25}
-                        stroke={isAccum ? (isDark ? "#6ee7b7" : "#00CE7C") : "none"}
-                        strokeWidth={isAccum ? 1.5 : 0}
-                      />
-                    );
-                  })}
-                </Bar>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+                    {/* Badge de Desvio Anual */}
+                    <div className={`mt-2.5 p-2 rounded-lg border flex items-center justify-between text-xs font-mono font-bold ${
+                      chartMetric === "valor"
+                        ? (financial.difValor < 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-[#00CE7C]' : 'bg-red-500/10 border-red-500/30 text-red-400')
+                        : ((financial.accumulatedDifFte || 0) < 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-[#00CE7C]' : 'bg-red-500/10 border-red-500/30 text-red-400')
+                    }`}>
+                      <span className="font-sans text-[11px] uppercase">Desvio Anual:</span>
+                      <span>
+                        {chartMetric === "valor"
+                          ? `${financial.difValor > 0 ? '+' : ''}${formatMoney(financial.difValor)} (${financial.pctDifValor > 0 ? '+' : ''}${financial.pctDifValor.toFixed(1)}%)`
+                          : `${(financial.accumulatedDifFte || 0) > 0 ? '+' : ''}${formatNumber(financial.accumulatedDifFte || 0)} FTEs (${(financial.accumulatedPctDifFte || 0) > 0 ? '+' : ''}${(financial.accumulatedPctDifFte || 0).toFixed(1)}%)`}
+                      </span>
+                    </div>
 
-          {/* Legenda com as Três Barras */}
-          <div className={`flex flex-wrap items-center justify-center gap-6 pt-3 mt-2 border-t text-xs md:text-sm font-semibold ${isDark ? "border-slate-800 text-slate-300" : "border-slate-200 text-slate-700"}`}>
+                    {/* Gráfico de Barras do Acumulado (Barras Amplas de 34px, Escala Anual) */}
+                    <div className="h-56 sm:h-64 w-full mt-3">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                          data={accumulatedChartData}
+                          margin={{ top: 25, right: 10, left: -15, bottom: 0 }}
+                          barGap={10}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false} />
+                          <XAxis
+                            dataKey="competence"
+                            stroke={isDark ? "#64748b" : "#94a3b8"}
+                            axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
+                            tickLine={false}
+                            tick={{ fill: '#38bdf8', fontSize: 11, fontWeight: 800 }}
+                          />
+                          <YAxis
+                            stroke={isDark ? "#64748b" : "#94a3b8"}
+                            tick={{ fill: isDark ? '#94a3b8' : '#475569', fontSize: 10 }}
+                            axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
+                            tickLine={false}
+                            domain={[0, 'auto']}
+                            tickFormatter={(v: any) => chartMetric === 'valor' ? formatMoneyCompact(v) : formatNumber(v)}
+                          />
+                          <RechartsTooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className={`border rounded-xl p-3 shadow-2xl text-xs space-y-1.5 min-w-[240px] ${isDark ? "bg-[#0d1629] border-sky-800 text-white" : "bg-white border-slate-300 text-slate-800"}`}>
+                                    <div className="font-black text-sky-400 border-b border-sky-800 pb-1 flex items-center justify-between">
+                                      <span>★ Acumulado do Ano (2026)</span>
+                                      <span className="text-[10px] bg-sky-500/20 px-2 py-0.5 rounded">Consolidado</span>
+                                    </div>
+                                    <div className="flex justify-between text-blue-400 font-semibold">
+                                      <span>PA Acumulado:</span>
+                                      <span className="font-mono font-bold">{chartMetric === "valor" ? formatMoney(financial.totalPaValor) : `${formatNumber(financial.accumulatedPaFte || 0)} FTEs`}</span>
+                                    </div>
+                                    <div className="flex justify-between text-indigo-400 font-semibold">
+                                      <span>Forecast Acumulado:</span>
+                                      <span className="font-mono font-bold">{chartMetric === "valor" ? formatMoney(financial.totalForecastValor) : `${formatNumber(financial.accumulatedFcFte || 0)} FTEs`}</span>
+                                    </div>
+                                    <div className="flex justify-between text-emerald-400 font-semibold">
+                                      <span>Realizado Acumulado:</span>
+                                      <span className="font-mono font-bold">{chartMetric === "valor" ? formatMoney(financial.totalRealValor) : `${formatNumber(financial.accumulatedRealFte || 0)} FTEs`}</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+
+                          {/* Barra PA Acumulado */}
+                          <Bar
+                            dataKey={chartMetric === "valor" ? "valPa" : "pa"}
+                            name="PA"
+                            fill="#1d4ed8"
+                            radius={[4, 4, 0, 0]}
+                            barSize={32}
+                          >
+                            <LabelList
+                              dataKey={chartMetric === "valor" ? "valPa" : "pa"}
+                              position="top"
+                              offset={6}
+                              fill={isDark ? "#93c5fd" : "#1e40af"}
+                              fontSize={11.5}
+                              fontWeight={800}
+                              formatter={formatBarLabel}
+                            />
+                            <Cell fill="#2563eb" stroke="#93c5fd" strokeWidth={1.5} />
+                          </Bar>
+
+                          {/* Barra Forecast Acumulado */}
+                          <Bar
+                            dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
+                            name="Forecast"
+                            fill="#6366f1"
+                            radius={[4, 4, 0, 0]}
+                            barSize={32}
+                          >
+                            <LabelList
+                              dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
+                              position="top"
+                              offset={6}
+                              fill={isDark ? "#c7d2fe" : "#4338ca"}
+                              fontSize={11.5}
+                              fontWeight={800}
+                              formatter={formatBarLabel}
+                            />
+                            <Cell fill="#7c3aed" stroke="#c7d2fe" strokeWidth={1.5} />
+                          </Bar>
+
+                          {/* Barra Realizado Acumulado */}
+                          <Bar
+                            dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
+                            name="Realizado"
+                            fill="#00CE7C"
+                            radius={[4, 4, 0, 0]}
+                            barSize={32}
+                          >
+                            <LabelList
+                              dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
+                              position="top"
+                              offset={6}
+                              fill={isDark ? "#6ee7b7" : "#047857"}
+                              fontSize={11.5}
+                              fontWeight={800}
+                              formatter={formatBarLabel}
+                            />
+                            <Cell fill="#10b981" stroke="#6ee7b7" strokeWidth={1.5} />
+                          </Bar>
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Legenda Geral */}
+          <div className={`flex flex-wrap items-center justify-center gap-6 pt-3 mt-4 border-t text-xs md:text-sm font-semibold ${isDark ? "border-slate-800 text-slate-300" : "border-slate-200 text-slate-700"}`}>
             <div className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 rounded bg-[#1d4ed8]" />
               <span>
-                {chartMetric === "valor" ? "PA em R$ (Planejamento Aprovado)" : "PA (Planejamento Aprovado)"}
+                {chartMetric === "valor" ? "PA (Planejamento Aprovado em R$)" : "PA (Planejamento Aprovado em FTE)"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 rounded bg-[#6366f1]" />
               <span>
-                {chartMetric === "valor" ? "Forecast em R$ (Baseline Ajustado)" : "Forecast (Baseline Ajustado)"}
+                {chartMetric === "valor" ? "Forecast (Baseline Ajustado em R$)" : "Forecast (Baseline Ajustado em FTE)"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 rounded bg-[#00CE7C]" />
               <span>
-                {chartMetric === "valor" ? "Realizado em R$ (Valor Efetivo)" : "Realizado (Efetivo Ativo)"}
+                {chartMetric === "valor" ? "Realizado (Efetivo Ativo em R$)" : "Realizado (Efetivo Ativo em FTE)"}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sky-400 font-bold">
               <span className="w-3.5 h-3.5 rounded bg-sky-500 border border-sky-300" />
-              <span>★ Acumulado do Ano (Soma dos 12 meses)</span>
+              <span>★ Card Acumulado Anual Dedicado (Soma do Ano)</span>
             </div>
           </div>
 
