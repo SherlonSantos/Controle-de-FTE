@@ -107,6 +107,7 @@ export default function ComparativoExecutivoPage() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [chartMonths, setChartMonths] = useState<6 | 12>(12);
   const [chartMetric, setChartMetric] = useState<"fte" | "valor">("fte");
+  const [barLabelMode, setBarLabelMode] = useState<"real" | "all" | "none">("real");
 
   // Data States
   const [cards, setCards] = useState<any>({
@@ -1073,6 +1074,46 @@ export default function ComparativoExecutivoPage() {
                   12 Meses
                 </button>
               </div>
+
+              {/* Seletor de Rótulos nas Barras (Para NUNCA embolar os números) */}
+              <div className={`p-1 rounded-xl border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
+                <button
+                  type="button"
+                  onClick={() => setBarLabelMode("real")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    barLabelMode === "real"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                  }`}
+                  title="Exibe apenas o número do Realizado no topo de cada mês (visão executiva limpa sem colisão)"
+                >
+                  Apenas Realizado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBarLabelMode("all")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    barLabelMode === "all"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                  }`}
+                  title="Exibe os 3 números (PA, Forecast e Realizado) escalonados em 3 andares verticais"
+                >
+                  Todas as 3 Barras
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBarLabelMode("none")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    barLabelMode === "none"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
+                      : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                  }`}
+                  title="Oculta os números flutuantes nas barras (consultar na régua abaixo ou passar o mouse)"
+                >
+                  Sem Rótulos
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1101,8 +1142,30 @@ export default function ComparativoExecutivoPage() {
 
             const accumulatedChartData = [accumulatedItem];
 
-            // Formatador conciso para os números nas barras (sem R$ repetitivo para não embolar)
-            const formatBarLabel = (v: any) => {
+            // Formatador para os números nas barras mensais com suporte aos 3 modos de rótulo
+            const formatBarLabel = (v: any, barType: "pa" | "forecast" | "real") => {
+              if (barLabelMode === "none") return "";
+              if (barLabelMode === "real" && barType !== "real") return "";
+              if (v === null || v === undefined) return "";
+              const num = Number(v);
+              if (isNaN(num) || num <= 0) return "";
+              if (chartMetric === "valor") {
+                if (num >= 1_000_000) {
+                  const millions = num / 1_000_000;
+                  const decimals = (chartMonths === 12 && barLabelMode === "all") ? 1 : 2;
+                  return `${millions.toFixed(decimals).replace(".", ",")}M`;
+                }
+                if (num >= 1_000) {
+                  return `${Math.round(num / 1_000)}K`;
+                }
+                return Math.round(num).toString();
+              } else {
+                return formatNumber(Math.round(num));
+              }
+            };
+
+            // Formatador para as barras do card acumulado
+            const formatAccumBarLabel = (v: any) => {
               if (v === null || v === undefined) return "";
               const num = Number(v);
               if (isNaN(num) || num <= 0) return "";
@@ -1121,26 +1184,27 @@ export default function ComparativoExecutivoPage() {
 
             return (
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-5">
-                {/* 1. GRÁFICO DE EVOLUÇÃO MENSAL (Escala 100% proporcional aos meses) */}
-                <div className={`xl:col-span-8 2xl:col-span-9 rounded-xl border p-4 flex flex-col justify-between ${isDark ? "bg-[#0b1222]/80 border-slate-800" : "bg-slate-50/70 border-slate-200"}`}>
+                {/* 1. GRÁFICO DE EVOLUÇÃO MENSAL (Escala 100% proporcional aos meses, Eixo X Amplamente Separado) */}
+                <div className={`xl:col-span-9 2xl:col-span-9 rounded-xl border p-4 flex flex-col justify-between ${isDark ? "bg-[#0b1222]/80 border-slate-800" : "bg-slate-50/70 border-slate-200"}`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800/60 mb-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#22c7ac]" />
                       <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                        Evolução Mensal ({monthlyChartData.length} competências) • Escala Mensal
+                        Evolução Mensal ({monthlyChartData.length} competências) • Eixo X Separado
                       </span>
                     </div>
                     <span className="text-[11px] text-slate-400">
-                      Rótulos escalonados • Valores em {chartMetric === "valor" ? "Milhões de R$" : "FTEs"}
+                      Espaçamento amplo entre meses • Modo: <strong className="text-[#22c7ac]">{barLabelMode === "real" ? "Apenas Realizado" : barLabelMode === "all" ? "3 Andares Verticais" : "Sem Rótulos"}</strong>
                     </span>
                   </div>
 
-                  <div className="h-80 sm:h-96 md:h-[390px] w-full">
+                  <div className="h-80 sm:h-96 md:h-[390px] w-full overflow-x-auto">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
                         data={monthlyChartData}
-                        margin={{ top: 32, right: 15, left: -5, bottom: 5 }}
-                        barGap={6}
+                        margin={{ top: 38, right: 15, left: -5, bottom: 5 }}
+                        barCategoryGap={chartMonths === 6 ? "38%" : "30%"}
+                        barGap={chartMonths === 6 ? 4 : 2}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false} />
                         <XAxis
@@ -1267,22 +1331,22 @@ export default function ComparativoExecutivoPage() {
                           }}
                         />
 
-                        {/* Barra 1: PA (Rótulo no nível inferior: offset=5) */}
+                        {/* Barra 1: PA (Andar inferior: offset=2 quando 'all') */}
                         <Bar
                           dataKey={chartMetric === "valor" ? "valPa" : "pa"}
                           name={chartMetric === "valor" ? "PA (R$)" : "PA"}
                           fill="#1d4ed8"
-                          radius={[4, 4, 0, 0]}
-                          barSize={chartMonths === 6 ? 26 : 16}
+                          radius={[3, 3, 0, 0]}
+                          barSize={chartMonths === 6 ? 18 : 10}
                         >
                           <LabelList
                             dataKey={chartMetric === "valor" ? "valPa" : "pa"}
                             position="top"
-                            offset={5}
+                            offset={2}
                             fill={isDark ? "#93c5fd" : "#1e40af"}
-                            fontSize={11}
+                            fontSize={chartMonths === 6 ? 10.5 : 9}
                             fontWeight={800}
-                            formatter={formatBarLabel}
+                            formatter={(v: any) => formatBarLabel(v, "pa")}
                           />
                           {monthlyChartData.map((entry, index) => (
                             <Cell
@@ -1292,22 +1356,22 @@ export default function ComparativoExecutivoPage() {
                           ))}
                         </Bar>
 
-                        {/* Barra 2: Forecast (Rótulo escalonado no nível superior: offset=24 para NUNCA embolar) */}
+                        {/* Barra 2: Forecast (Andar superior: offset=28 quando 'all') */}
                         <Bar
                           dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
                           name={chartMetric === "valor" ? "Forecast (R$)" : "Forecast"}
                           fill="#6366f1"
-                          radius={[4, 4, 0, 0]}
-                          barSize={chartMonths === 6 ? 26 : 16}
+                          radius={[3, 3, 0, 0]}
+                          barSize={chartMonths === 6 ? 18 : 10}
                         >
                           <LabelList
                             dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
                             position="top"
-                            offset={24}
+                            offset={28}
                             fill={isDark ? "#c7d2fe" : "#4338ca"}
-                            fontSize={11}
+                            fontSize={chartMonths === 6 ? 10.5 : 9}
                             fontWeight={800}
-                            formatter={formatBarLabel}
+                            formatter={(v: any) => formatBarLabel(v, "forecast")}
                           />
                           {monthlyChartData.map((entry, index) => (
                             <Cell
@@ -1317,22 +1381,22 @@ export default function ComparativoExecutivoPage() {
                           ))}
                         </Bar>
 
-                        {/* Barra 3: Realizado (Rótulo no nível inferior: offset=5) */}
+                        {/* Barra 3: Realizado (Andar médio: offset=15 quando 'all', ou offset=6 quando 'real') */}
                         <Bar
                           dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
                           name={chartMetric === "valor" ? "Realizado (R$)" : "Realizado"}
                           fill="#00CE7C"
-                          radius={[4, 4, 0, 0]}
-                          barSize={chartMonths === 6 ? 26 : 16}
+                          radius={[3, 3, 0, 0]}
+                          barSize={chartMonths === 6 ? 18 : 10}
                         >
                           <LabelList
                             dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
                             position="top"
-                            offset={5}
-                            fill={isDark ? "#6ee7b7" : "#047857"}
-                            fontSize={11}
+                            offset={barLabelMode === "real" ? 6 : 15}
+                            fill={isDark ? (barLabelMode === "real" ? "#22c7ac" : "#6ee7b7") : "#047857"}
+                            fontSize={barLabelMode === "real" ? (chartMonths === 6 ? 12 : 10.5) : (chartMonths === 6 ? 10.5 : 9)}
                             fontWeight={800}
-                            formatter={formatBarLabel}
+                            formatter={(v: any) => formatBarLabel(v, "real")}
                           />
                           {monthlyChartData.map((entry, index) => (
                             <Cell
@@ -1348,7 +1412,7 @@ export default function ComparativoExecutivoPage() {
                 </div>
 
                 {/* 2. CARD EXECUTIVO: ACUMULADO DO ANO DEDICADO (Escala Própria, Barras Largas, Zero Colisão) */}
-                <div className={`xl:col-span-4 2xl:col-span-3 rounded-xl border p-4 flex flex-col justify-between shadow-lg ${isDark ? "bg-[#0b1222] border-sky-900/50" : "bg-sky-50/70 border-sky-200"}`}>
+                <div className={`xl:col-span-3 2xl:col-span-3 rounded-xl border p-4 flex flex-col justify-between shadow-lg ${isDark ? "bg-[#0b1222] border-sky-900/50" : "bg-sky-50/70 border-sky-200"}`}>
                   <div>
                     {/* Header do Card Acumulado */}
                     <div className="flex items-center justify-between pb-3 border-b border-sky-800/40">
@@ -1470,7 +1534,7 @@ export default function ComparativoExecutivoPage() {
                               fill={isDark ? "#93c5fd" : "#1e40af"}
                               fontSize={11.5}
                               fontWeight={800}
-                              formatter={formatBarLabel}
+                              formatter={formatAccumBarLabel}
                             />
                             <Cell fill="#2563eb" stroke="#93c5fd" strokeWidth={1.5} />
                           </Bar>
@@ -1490,7 +1554,7 @@ export default function ComparativoExecutivoPage() {
                               fill={isDark ? "#c7d2fe" : "#4338ca"}
                               fontSize={11.5}
                               fontWeight={800}
-                              formatter={formatBarLabel}
+                              formatter={formatAccumBarLabel}
                             />
                             <Cell fill="#7c3aed" stroke="#c7d2fe" strokeWidth={1.5} />
                           </Bar>
@@ -1510,7 +1574,7 @@ export default function ComparativoExecutivoPage() {
                               fill={isDark ? "#6ee7b7" : "#047857"}
                               fontSize={11.5}
                               fontWeight={800}
-                              formatter={formatBarLabel}
+                              formatter={formatAccumBarLabel}
                             />
                             <Cell fill="#10b981" stroke="#6ee7b7" strokeWidth={1.5} />
                           </Bar>
