@@ -123,12 +123,27 @@ export default function ComparativoExecutivoPage() {
     totalRealValor: number;
     difValor: number;
     pctDifValor: number;
+    accumulatedPaFte?: number;
+    accumulatedFcFte?: number;
+    accumulatedRealFte?: number;
+    accumulatedDifFte?: number;
+    accumulatedPctDifFte?: number;
+    monthPaValor?: number;
+    monthForecastValor?: number;
+    monthRealValor?: number;
+    monthDifValor?: number;
+    monthPctDifValor?: number;
   }>({
     totalPaValor: 0,
     totalForecastValor: 0,
     totalRealValor: 0,
     difValor: 0,
-    pctDifValor: 0
+    pctDifValor: 0,
+    accumulatedPaFte: 0,
+    accumulatedFcFte: 0,
+    accumulatedRealFte: 0,
+    accumulatedDifFte: 0,
+    accumulatedPctDifFte: 0
   });
   const [topMaiores, setTopMaiores] = useState<any[]>([]);
   const [topMenores, setTopMenores] = useState<any[]>([]);
@@ -938,68 +953,82 @@ export default function ComparativoExecutivoPage() {
         </section>
 
         {/* 4. Gráfico Comparativo — Evolução Histórica (PA x Forecast x Realizado) */}
-        <section className="bg-[#111c33] rounded-xl border border-slate-800/90 shadow-xl p-5 flex flex-col">
-          {/* Header do Card com Totais Financeiros (R$) e Controles */}
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+        <section className={`rounded-xl border shadow-xl p-5 flex flex-col transition-all ${isDark ? "bg-[#111c33] border-slate-800/90 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+          {/* Header do Card com Totais Acumulados do Ano e Controles */}
+          <div className={`flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
             <div>
-              <h3 className="font-extrabold text-base text-white tracking-wide uppercase flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#22c7ac]" />
-                Evolução histórica | PA x Forecast x Realizado
+              <h3 className={`font-extrabold text-base md:text-lg tracking-wide uppercase flex items-center gap-2.5 ${isDark ? "text-white" : "text-slate-900"}`}>
+                <Layers className="w-5 h-5 text-[#22c7ac]" />
+                Evolução Histórica | PA x Forecast x Realizado
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Comparativo mensal de efetivo planejado, baseline ajustado e realizado (competências cronológicas)
+              <p className={`text-xs md:text-sm mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                Comparativo mensal e acumulado do ano de efetivo planejado, baseline ajustado e realizado
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Total PA (R$) */}
-              <div className={`rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm border ${isDark ? "bg-[#0b1222] border-blue-900/50" : "bg-blue-50/60 border-blue-200"}`}>
-                <div className="w-2 h-2 rounded-full bg-[#1d4ed8]" />
+              {/* Card 1: PA Acumulado */}
+              <div className={`rounded-xl px-4 py-2 sm:px-4.5 sm:py-2.5 flex items-center gap-3 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-blue-900/60" : "bg-blue-50/80 border-blue-300 shadow-sm"}`}>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#1d4ed8] shrink-0" />
                 <div>
-                  <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">
-                    Total PA (R$)
+                  <div className="text-xs text-blue-400 font-extrabold uppercase tracking-wider">
+                    {chartMetric === "valor" ? "PA Acumulado (R$)" : "PA Acumulado (FTE)"}
                   </div>
-                  <div className={`text-xs md:text-sm font-black font-mono ${isDark ? "text-white" : "text-blue-900"}`}>
-                    {isLoading ? "..." : formatMoney(financial.totalPaValor)}
+                  <div className={`text-base sm:text-lg md:text-xl font-black font-mono leading-tight ${isDark ? "text-white" : "text-blue-950"}`}>
+                    {isLoading
+                      ? "..."
+                      : chartMetric === "valor"
+                      ? formatMoney(financial.totalPaValor)
+                      : `${formatNumber(financial.accumulatedPaFte || 0)} FTEs`}
                   </div>
                 </div>
               </div>
 
-              {/* Total Real (R$) */}
-              <div className={`rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 shadow-sm border ${isDark ? "bg-[#0b1222] border-emerald-900/50" : "bg-emerald-50/60 border-emerald-200"}`}>
-                <div className="w-2 h-2 rounded-full bg-[#00CE7C]" />
+              {/* Card 2: Realizado Acumulado */}
+              <div className={`rounded-xl px-4 py-2 sm:px-4.5 sm:py-2.5 flex items-center gap-3 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-emerald-900/60" : "bg-emerald-50/80 border-emerald-300 shadow-sm"}`}>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#00CE7C] shrink-0" />
                 <div>
-                  <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                    Total Real (R$)
+                  <div className="text-xs text-emerald-400 font-extrabold uppercase tracking-wider">
+                    {chartMetric === "valor" ? "Real Acumulado (R$)" : "Real Acumulado (FTE)"}
                   </div>
-                  <div className={`text-xs md:text-sm font-black font-mono ${isDark ? "text-white" : "text-emerald-900"}`}>
-                    {isLoading ? "..." : formatMoney(financial.totalRealValor)}
+                  <div className={`text-base sm:text-lg md:text-xl font-black font-mono leading-tight ${isDark ? "text-white" : "text-emerald-950"}`}>
+                    {isLoading
+                      ? "..."
+                      : chartMetric === "valor"
+                      ? formatMoney(financial.totalRealValor)
+                      : `${formatNumber(financial.accumulatedRealFte || 0)} FTEs`}
                   </div>
                 </div>
               </div>
 
-              {/* Diferença Financeira */}
-              <div className={`rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-sm border ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100/80 border-slate-200"}`}>
+              {/* Card 3: Diferença Acumulada */}
+              <div className={`rounded-xl px-4 py-2 sm:px-4.5 sm:py-2.5 flex items-center gap-3 shadow-sm border transition-all ${isDark ? "bg-[#0b1222] border-slate-700/80" : "bg-slate-50 border-slate-300 shadow-sm"}`}>
                 <div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                    Dif. Valor (R$)
+                  <div className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                    {chartMetric === "valor" ? "Dif. Acumulada (R$)" : "Dif. Acumulada (FTE)"}
                   </div>
-                  <div className={`text-xs md:text-sm font-black font-mono ${
-                    financial.difValor < 0 ? 'text-[#00CE7C]' : financial.difValor > 0 ? 'text-red-400' : 'text-slate-300'
+                  <div className={`text-base sm:text-lg md:text-xl font-black font-mono leading-tight ${
+                    chartMetric === "valor"
+                      ? (financial.difValor < 0 ? 'text-[#00CE7C]' : financial.difValor > 0 ? 'text-red-400' : isDark ? 'text-slate-300' : 'text-slate-800')
+                      : ((financial.accumulatedDifFte || 0) > 0 ? 'text-red-400' : (financial.accumulatedDifFte || 0) < 0 ? 'text-[#00CE7C]' : isDark ? 'text-slate-300' : 'text-slate-800')
                   }`}>
-                    {isLoading ? "..." : `${financial.difValor > 0 ? '+' : ''}${formatMoney(financial.difValor)} (${financial.pctDifValor > 0 ? '+' : ''}${financial.pctDifValor.toFixed(1)}%)`}
+                    {isLoading ? "..." : (
+                      chartMetric === "valor"
+                        ? `${financial.difValor > 0 ? '+' : ''}${formatMoney(financial.difValor)} (${financial.pctDifValor > 0 ? '+' : ''}${financial.pctDifValor.toFixed(1)}%)`
+                        : `${(financial.accumulatedDifFte || 0) > 0 ? '+' : ''}${formatNumber(financial.accumulatedDifFte || 0)} FTEs (${(financial.accumulatedPctDifFte || 0) > 0 ? '+' : ''}${(financial.accumulatedPctDifFte || 0).toFixed(1)}%)`
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Toggle de Métrica: Quantidade (FTE) vs Valor (R$) */}
-              <div className={`p-0.5 rounded-lg border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
+              <div className={`p-1 rounded-xl border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
                 <button
                   type="button"
                   onClick={() => setChartMetric("fte")}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMetric === "fte"
-                      ? "bg-[#22c7ac] text-[#041A71] shadow-sm"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
@@ -1008,9 +1037,9 @@ export default function ComparativoExecutivoPage() {
                 <button
                   type="button"
                   onClick={() => setChartMetric("valor")}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMetric === "valor"
-                      ? "bg-[#22c7ac] text-[#041A71] shadow-sm"
+                      ? "bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold"
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
@@ -1019,13 +1048,13 @@ export default function ComparativoExecutivoPage() {
               </div>
 
               {/* Toggle 6 vs 12 Meses */}
-              <div className={`p-0.5 rounded-lg border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
+              <div className={`p-1 rounded-xl border flex shrink-0 ${isDark ? "bg-[#0b1222] border-slate-800" : "bg-slate-100 border-slate-300"}`}>
                 <button
                   type="button"
                   onClick={() => setChartMonths(6)}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMonths === 6
-                      ? 'bg-[#22c7ac] text-[#041A71] shadow-sm'
+                      ? 'bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold'
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
@@ -1034,9 +1063,9 @@ export default function ComparativoExecutivoPage() {
                 <button
                   type="button"
                   onClick={() => setChartMonths(12)}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                     chartMonths === 12
-                      ? 'bg-[#22c7ac] text-[#041A71] shadow-sm'
+                      ? 'bg-[#22c7ac] text-[#041A71] shadow-md font-extrabold'
                       : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
                   }`}
                 >
@@ -1047,24 +1076,48 @@ export default function ComparativoExecutivoPage() {
           </div>
 
           {/* Gráfico Recharts com 3 Barras Alternáveis e Rótulos Numéricos */}
-          <div className="h-72 sm:h-80 w-full mt-4">
+          <div className="h-88 sm:h-96 md:h-[430px] w-full mt-5">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={evolutionChart}
-                margin={{ top: 22, right: 10, left: -10, bottom: 0 }}
+                margin={{ top: 28, right: 15, left: -5, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false} />
                 <XAxis
                   dataKey="competence"
                   stroke={isDark ? "#64748b" : "#94a3b8"}
-                  tick={{ fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 600 }}
                   axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
                   tickLine={false}
+                  tick={({ x, y, payload }: any) => {
+                    const isAccum = String(payload.value || "").includes("Acumulado");
+                    const isSelected = payload.value === selectedCompetence;
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        <text
+                          x={0}
+                          y={0}
+                          dy={14}
+                          textAnchor="middle"
+                          fill={
+                            isAccum
+                              ? (isDark ? "#38bdf8" : "#0284c7")
+                              : isSelected
+                              ? "#22c7ac"
+                              : (isDark ? "#94a3b8" : "#475569")
+                          }
+                          fontSize={isAccum ? 12 : 11}
+                          fontWeight={isAccum || isSelected ? 800 : 600}
+                        >
+                          {isAccum ? "★ ACUMULADO" : payload.value}
+                        </text>
+                      </g>
+                    );
+                  }}
                 />
                 <YAxis
-                  stroke="#64748b"
-                  tick={{ fill: '#94a3b8', fontSize: 11 }}
-                  axisLine={{ stroke: '#334155' }}
+                  stroke={isDark ? "#64748b" : "#94a3b8"}
+                  tick={{ fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 600 }}
+                  axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
                   tickLine={false}
                   domain={[0, 'auto']}
                   tickFormatter={(v: any) => chartMetric === 'valor' ? formatMoneyCompact(v) : formatNumber(v)}
@@ -1075,13 +1128,25 @@ export default function ComparativoExecutivoPage() {
                       const data = payload[0].payload;
                       const hasReal = data.hasRealizado;
                       const hasFin = data.valPa > 0 || data.valReal > 0;
+                      const isAccum = Boolean(data.isAccumulated) || String(label || "").includes("Acumulado");
                       return (
-                        <div className="bg-[#0d1629] border border-slate-700/80 rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[250px]">
-                          <div className="font-bold text-white border-b border-slate-700/60 pb-1.5 flex items-center justify-between">
-                            <span className="text-sm">Competência {label}</span>
-                            {label === selectedCompetence && (
+                        <div className={`border rounded-xl p-3.5 shadow-2xl text-xs space-y-2 min-w-[270px] ${isDark ? "bg-[#0d1629] border-slate-700/80 text-white" : "bg-white border-slate-300 text-slate-800"}`}>
+                          <div className={`font-bold border-b pb-1.5 flex items-center justify-between ${isDark ? "border-slate-700/60 text-white" : "border-slate-200 text-slate-900"}`}>
+                            <span className="text-sm font-extrabold flex items-center gap-1.5">
+                              {isAccum ? (
+                                <span className="text-sky-400 font-black">★ Acumulado do Ano</span>
+                              ) : (
+                                `Competência ${label}`
+                              )}
+                            </span>
+                            {label === selectedCompetence && !isAccum && (
                               <span className="text-[10px] bg-[#22c7ac]/20 text-[#22c7ac] px-2 py-0.5 rounded font-bold">
                                 Ativa
+                              </span>
+                            )}
+                            {isAccum && (
+                              <span className="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded font-bold">
+                                Soma Anual
                               </span>
                             )}
                           </div>
@@ -1091,32 +1156,32 @@ export default function ComparativoExecutivoPage() {
                               {/* Seção Financeira (Prioritária no Modo Valor) */}
                               <div className="space-y-1">
                                 <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
-                                  Valores Financeiros (R$)
+                                  {isAccum ? "Valores Financeiros Acumulados (R$)" : "Valores Financeiros (R$)"}
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300">
+                                <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
                                     <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
                                   </span>
-                                  <span className="font-mono font-bold text-white">{formatMoney(data.valPa)}</span>
+                                  <span className="font-mono font-bold">{formatMoney(data.valPa)}</span>
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300">
+                                <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
                                     <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast (R$):
                                   </span>
-                                  <span className="font-mono font-bold text-white">{formatMoney(data.valForecast)}</span>
+                                  <span className="font-mono font-bold">{formatMoney(data.valForecast)}</span>
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300">
+                                <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                                     <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Total Real:
                                   </span>
-                                  <span className="font-mono font-bold text-white">
+                                  <span className="font-mono font-bold">
                                     {hasReal ? formatMoney(data.valReal) : "Não realizado"}
                                   </span>
                                 </div>
                                 {data.valReal > 0 && data.valPa > 0 && (
-                                  <div className="flex items-center justify-between text-[11px] font-semibold pt-1 border-t border-slate-800">
-                                    <span className="text-slate-400">Dif. Valor (Real - PA):</span>
-                                    <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-300'}`}>
+                                  <div className={`flex items-center justify-between text-[11px] font-semibold pt-1 border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+                                    <span className={isDark ? "text-slate-400" : "text-slate-500"}>Dif. Valor (Real - PA):</span>
+                                    <span className={`font-mono font-bold ${data.difValor < 0 ? 'text-[#00CE7C]' : data.difValor > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                       {data.difValor > 0 ? '+' : ''}{formatMoney(data.difValor)}
                                     </span>
                                   </div>
@@ -1124,13 +1189,13 @@ export default function ComparativoExecutivoPage() {
                               </div>
 
                               {/* Seção FTE (Secundária) */}
-                              <div className="pt-2 border-t border-slate-700/60 space-y-1">
-                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                  Quantitativo de FTE
+                              <div className={`pt-2 border-t space-y-1 ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
+                                <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                                  {isAccum ? "Quantitativo Total de FTEs" : "Quantitativo de FTE"}
                                 </div>
-                                <div className="flex items-center justify-between text-slate-400">
-                                  <span>PA / Forecast / Real:</span>
-                                  <span className="font-mono font-semibold text-white">
+                                <div className="flex items-center justify-between">
+                                  <span className={isDark ? "text-slate-400" : "text-slate-600"}>PA / Forecast / Real:</span>
+                                  <span className="font-mono font-semibold">
                                     {formatNumber(data.pa)} / {formatNumber(data.forecast)} / {hasReal ? formatNumber(data.realizado) : "-"}
                                   </span>
                                 </div>
@@ -1141,31 +1206,31 @@ export default function ComparativoExecutivoPage() {
                               {/* Seção FTE (Prioritária no Modo Quantidade) */}
                               <div className="space-y-1">
                                 <div className="text-[10px] text-[#22c7ac] font-bold uppercase tracking-wider">
-                                  Quantitativo de FTE
+                                  {isAccum ? "Quantitativo Total de FTEs" : "Quantitativo de FTE"}
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300">
+                                <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
                                     <span className="w-2 h-2 rounded-full bg-[#1d4ed8]" /> Total PA:
                                   </span>
-                                  <span className="font-mono font-bold text-white">{formatNumber(data.pa)} FTEs</span>
+                                  <span className="font-mono font-bold">{formatNumber(data.pa)} FTEs</span>
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300">
+                                <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-1.5 text-indigo-400 font-semibold">
                                     <span className="w-2 h-2 rounded-full bg-[#6366f1]" /> Forecast:
                                   </span>
-                                  <span className="font-mono font-bold text-white">{formatNumber(data.forecast)} FTEs</span>
+                                  <span className="font-mono font-bold">{formatNumber(data.forecast)} FTEs</span>
                                 </div>
-                                <div className="flex items-center justify-between text-slate-300">
+                                <div className="flex items-center justify-between">
                                   <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                                     <span className="w-2 h-2 rounded-full bg-[#00CE7C]" /> Realizado:
                                   </span>
-                                  <span className="font-mono font-bold text-white">
+                                  <span className="font-mono font-bold">
                                     {hasReal ? `${formatNumber(data.realizado)} FTEs` : "Não realizado"}
                                   </span>
                                 </div>
                                 {hasReal && (
-                                  <div className="pt-1 flex items-center justify-between text-[11px] font-semibold border-t border-slate-800">
-                                    <span className="text-slate-400">Desvio FTE (Real - PA):</span>
+                                  <div className={`pt-1 flex items-center justify-between text-[11px] font-semibold border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+                                    <span className={isDark ? "text-slate-400" : "text-slate-500"}>Desvio FTE (Real - PA):</span>
                                     <span className={`font-mono font-bold ${data.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]'}`}>
                                       {data.difFTE > 0 ? `+${data.difFTE}` : data.difFTE} ({formatPercent(data.pctDif)})
                                     </span>
@@ -1175,17 +1240,17 @@ export default function ComparativoExecutivoPage() {
 
                               {/* Seção Financeira (Secundária) */}
                               {hasFin && (
-                                <div className="pt-2 border-t border-slate-700/60 space-y-1">
-                                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                    Valores Financeiros (R$)
+                                <div className={`pt-2 border-t space-y-1 ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
+                                  <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                                    {isAccum ? "Valores Financeiros Acumulados (R$)" : "Valores Financeiros (R$)"}
                                   </div>
-                                  <div className="flex items-center justify-between text-slate-300">
+                                  <div className="flex items-center justify-between">
                                     <span className="text-blue-400 font-semibold">PA (R$):</span>
-                                    <span className="font-mono font-bold text-white">{formatMoney(data.valPa)}</span>
+                                    <span className="font-mono font-bold">{formatMoney(data.valPa)}</span>
                                   </div>
-                                  <div className="flex items-center justify-between text-slate-300">
+                                  <div className="flex items-center justify-between">
                                     <span className="text-emerald-400 font-semibold">Real (R$):</span>
-                                    <span className="font-mono font-bold text-white">{formatMoney(data.valReal)}</span>
+                                    <span className="font-mono font-bold">{formatMoney(data.valReal)}</span>
                                   </div>
                                 </div>
                               )}
@@ -1203,23 +1268,30 @@ export default function ComparativoExecutivoPage() {
                   dataKey={chartMetric === "valor" ? "valPa" : "pa"}
                   name={chartMetric === "valor" ? "PA (R$)" : "PA"}
                   fill="#1d4ed8"
-                  radius={[3, 3, 0, 0]}
-                  barSize={chartMonths === 6 ? 24 : 13}
+                  radius={[4, 4, 0, 0]}
+                  barSize={chartMonths === 6 ? 26 : 14}
                 >
                   <LabelList
                     dataKey={chartMetric === "valor" ? "valPa" : "pa"}
                     position="top"
-                    fill="#93c5fd"
-                    fontSize={chartMonths === 6 ? 9.5 : 7.5}
-                    fontWeight={700}
+                    fill={isDark ? "#93c5fd" : "#1e40af"}
+                    fontSize={chartMonths === 6 ? 12 : 10.5}
+                    fontWeight={800}
                     formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
                   />
-                  {evolutionChart.map((entry, index) => (
-                    <Cell
-                      key={`pa-${index}`}
-                      fill={entry.competence === selectedCompetence ? "#3b82f6" : "#1d4ed8"}
-                    />
-                  ))}
+                  {evolutionChart.map((entry, index) => {
+                    const isAccum = entry.isAccumulated || entry.competence.includes("Acumulado");
+                    const isSelected = entry.competence === selectedCompetence;
+                    const fill = isAccum ? "#2563eb" : isSelected ? "#3b82f6" : "#1d4ed8";
+                    return (
+                      <Cell
+                        key={`pa-${index}`}
+                        fill={fill}
+                        stroke={isAccum ? (isDark ? "#93c5fd" : "#1d4ed8") : "none"}
+                        strokeWidth={isAccum ? 1.5 : 0}
+                      />
+                    );
+                  })}
                 </Bar>
 
                 {/* Barra 2: Forecast */}
@@ -1227,23 +1299,30 @@ export default function ComparativoExecutivoPage() {
                   dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
                   name={chartMetric === "valor" ? "Forecast (R$)" : "Forecast"}
                   fill="#6366f1"
-                  radius={[3, 3, 0, 0]}
-                  barSize={chartMonths === 6 ? 24 : 13}
+                  radius={[4, 4, 0, 0]}
+                  barSize={chartMonths === 6 ? 26 : 14}
                 >
                   <LabelList
                     dataKey={chartMetric === "valor" ? "valForecast" : "forecast"}
                     position="top"
-                    fill="#c7d2fe"
-                    fontSize={chartMonths === 6 ? 9.5 : 7.5}
-                    fontWeight={700}
+                    fill={isDark ? "#c7d2fe" : "#4338ca"}
+                    fontSize={chartMonths === 6 ? 12 : 10.5}
+                    fontWeight={800}
                     formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
                   />
-                  {evolutionChart.map((entry, index) => (
-                    <Cell
-                      key={`fc-${index}`}
-                      fill={entry.competence === selectedCompetence ? "#818cf8" : "#6366f1"}
-                    />
-                  ))}
+                  {evolutionChart.map((entry, index) => {
+                    const isAccum = entry.isAccumulated || entry.competence.includes("Acumulado");
+                    const isSelected = entry.competence === selectedCompetence;
+                    const fill = isAccum ? "#7c3aed" : isSelected ? "#818cf8" : "#6366f1";
+                    return (
+                      <Cell
+                        key={`fc-${index}`}
+                        fill={fill}
+                        stroke={isAccum ? (isDark ? "#c7d2fe" : "#6366f1") : "none"}
+                        strokeWidth={isAccum ? 1.5 : 0}
+                      />
+                    );
+                  })}
                 </Bar>
 
                 {/* Barra 3: Realizado */}
@@ -1251,147 +1330,261 @@ export default function ComparativoExecutivoPage() {
                   dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
                   name={chartMetric === "valor" ? "Realizado (R$)" : "Realizado"}
                   fill="#00CE7C"
-                  radius={[3, 3, 0, 0]}
-                  barSize={chartMonths === 6 ? 24 : 13}
+                  radius={[4, 4, 0, 0]}
+                  barSize={chartMonths === 6 ? 26 : 14}
                 >
                   <LabelList
                     dataKey={chartMetric === "valor" ? "valReal" : "realizado"}
                     position="top"
-                    fill="#6ee7b7"
-                    fontSize={chartMonths === 6 ? 9.5 : 7.5}
-                    fontWeight={700}
+                    fill={isDark ? "#6ee7b7" : "#047857"}
+                    fontSize={chartMonths === 6 ? 12 : 10.5}
+                    fontWeight={800}
                     formatter={(v: any) => v > 0 ? (chartMetric === "valor" ? formatMoneyCompact(v) : formatNumber(v)) : ''}
                   />
-                  {evolutionChart.map((entry, index) => (
-                    <Cell
-                      key={`real-${index}`}
-                      fill={entry.competence === selectedCompetence ? "#22c7ac" : "#00CE7C"}
-                      fillOpacity={entry.hasRealizado ? 1 : 0.25}
-                    />
-                  ))}
+                  {evolutionChart.map((entry, index) => {
+                    const isAccum = entry.isAccumulated || entry.competence.includes("Acumulado");
+                    const isSelected = entry.competence === selectedCompetence;
+                    const fill = isAccum ? "#10b981" : isSelected ? "#22c7ac" : "#00CE7C";
+                    return (
+                      <Cell
+                        key={`real-${index}`}
+                        fill={fill}
+                        fillOpacity={entry.hasRealizado ? 1 : 0.25}
+                        stroke={isAccum ? (isDark ? "#6ee7b7" : "#00CE7C") : "none"}
+                        strokeWidth={isAccum ? 1.5 : 0}
+                      />
+                    );
+                  })}
                 </Bar>
               </ComposedChart>
             </ResponsiveContainer>
           </div>
 
           {/* Legenda com as Três Barras */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-3 mt-2 border-t border-slate-800 text-xs text-slate-300 font-medium">
+          <div className={`flex flex-wrap items-center justify-center gap-6 pt-3 mt-2 border-t text-xs md:text-sm font-semibold ${isDark ? "border-slate-800 text-slate-300" : "border-slate-200 text-slate-700"}`}>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded bg-[#1d4ed8]" />
-              <span className="font-semibold text-white">
+              <span className="w-3.5 h-3.5 rounded bg-[#1d4ed8]" />
+              <span>
                 {chartMetric === "valor" ? "PA em R$ (Planejamento Aprovado)" : "PA (Planejamento Aprovado)"}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded bg-[#6366f1]" />
-              <span className="font-semibold text-white">
+              <span className="w-3.5 h-3.5 rounded bg-[#6366f1]" />
+              <span>
                 {chartMetric === "valor" ? "Forecast em R$ (Baseline Ajustado)" : "Forecast (Baseline Ajustado)"}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded bg-[#00CE7C]" />
-              <span className="font-semibold text-white">
+              <span className="w-3.5 h-3.5 rounded bg-[#00CE7C]" />
+              <span>
                 {chartMetric === "valor" ? "Realizado em R$ (Valor Efetivo)" : "Realizado (Efetivo Ativo)"}
               </span>
             </div>
-            <div className="text-slate-500 text-[11px]">
-              <span>• Competência selecionada ({selectedCompetence}) em tom destacado</span>
+            <div className="flex items-center gap-2 text-sky-400 font-bold">
+              <span className="w-3.5 h-3.5 rounded bg-sky-500 border border-sky-300" />
+              <span>★ Acumulado do Ano (Soma dos 12 meses)</span>
             </div>
           </div>
 
           {/* Régua Mensal Consolidada de Números (FTEs e R$) */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 overflow-x-auto">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <div className={`mt-4 pt-3 border-t overflow-x-auto ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
+            <div className={`text-xs md:text-sm font-bold uppercase tracking-wider mb-2.5 flex items-center justify-between ${isDark ? "text-slate-400" : "text-slate-600"}`}>
               <span>Acompanhamento Numérico Consolidado por Competência</span>
-              <span className="text-slate-500 font-normal">
-                Modo ativo: <strong className="text-[#22c7ac]">{chartMetric === 'valor' ? 'Valores em R$' : 'Quantitativo de FTE'}</strong>
+              <span className="text-xs font-normal">
+                Modo ativo: <strong className="text-[#22c7ac] font-bold">{chartMetric === 'valor' ? 'Valores em R$' : 'Quantitativo de FTE'}</strong>
               </span>
             </div>
-            <table className="w-full text-[11px] text-center border-collapse">
+            <table className="w-full text-xs md:text-sm text-center border-collapse">
               <thead>
-                <tr className="bg-[#0b1222] text-slate-400 font-bold border-b border-slate-800">
-                  <th className="py-1.5 px-2 text-left">Métrica</th>
-                  {evolutionChart.map((m) => (
-                    <th
-                      key={m.competence}
-                      className={`py-1.5 px-2 ${m.competence === selectedCompetence ? 'text-[#22c7ac] font-black bg-[#22c7ac]/10' : ''}`}
-                    >
-                      {m.competence}
-                    </th>
-                  ))}
+                <tr className={`border-b ${isDark ? "bg-[#0b1222] text-slate-300 border-slate-800" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                  <th className="py-2 px-3 text-left font-black">Métrica</th>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <th
+                        key={m.competence}
+                        className={`py-2 px-3 font-extrabold ${
+                          isAccum
+                            ? 'text-sky-400 font-black bg-sky-500/15 border-l-2 border-sky-400/50'
+                            : isSelected
+                            ? 'text-[#22c7ac] font-black bg-[#22c7ac]/10'
+                            : ''
+                        }`}
+                      >
+                        {isAccum ? "★ ACUMULADO" : m.competence}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
-              <tbody className={`divide-y font-mono ${isDark ? "divide-slate-800/50 text-slate-300" : "divide-slate-200 text-slate-700"}`}>
+              <tbody className={`divide-y font-mono ${isDark ? "divide-slate-800/60 text-slate-200" : "divide-slate-200 text-slate-800"}`}>
                 {/* Linhas FTE */}
-                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-blue-950/20' : 'bg-blue-50/60') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-blue-400 font-sans">PA (FTE)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
-                      {formatNumber(m.pa)}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-blue-950/30' : 'bg-blue-50/70') : ''}>
+                  <td className="py-2 px-3 text-left font-black text-blue-400 font-sans">PA (FTE)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 ${
+                          isAccum
+                            ? 'font-black bg-sky-500/10 border-l-2 border-sky-400/40 text-blue-300'
+                            : isSelected
+                            ? `font-black ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`
+                            : ''
+                        }`}
+                      >
+                        {formatNumber(m.pa)}
+                      </td>
+                    );
+                  })}
                 </tr>
-                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-indigo-950/20' : 'bg-indigo-50/60') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-indigo-400 font-sans">Forecast (FTE)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
-                      {formatNumber(m.forecast)}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-indigo-950/30' : 'bg-indigo-50/70') : ''}>
+                  <td className="py-2 px-3 text-left font-black text-indigo-400 font-sans">Forecast (FTE)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 ${
+                          isAccum
+                            ? 'font-black bg-sky-500/10 border-l-2 border-sky-400/40 text-indigo-300'
+                            : isSelected
+                            ? `font-black ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`
+                            : ''
+                        }`}
+                      >
+                        {formatNumber(m.forecast)}
+                      </td>
+                    );
+                  })}
                 </tr>
-                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-emerald-950/20' : 'bg-emerald-50/60') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-emerald-400 font-sans">Realizado (FTE)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
-                      {m.hasRealizado ? formatNumber(m.realizado) : "-"}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-emerald-950/30' : 'bg-emerald-50/70') : ''}>
+                  <td className="py-2 px-3 text-left font-black text-emerald-400 font-sans">Realizado (FTE)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 ${
+                          isAccum
+                            ? 'font-black bg-sky-500/10 border-l-2 border-sky-400/40 text-emerald-300'
+                            : isSelected
+                            ? `font-black ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`
+                            : ''
+                        }`}
+                      >
+                        {m.hasRealizado ? formatNumber(m.realizado) : "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
-                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-slate-800/30' : 'bg-slate-100/70') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. FTE</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 font-bold ${
-                      m.hasRealizado && m.difFTE !== null ? (m.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]') : 'text-slate-500'
-                    } ${m.competence === selectedCompetence ? 'bg-[#22c7ac]/5' : ''}`}>
-                      {m.hasRealizado && m.difFTE !== null ? (m.difFTE > 0 ? `+${m.difFTE}` : m.difFTE) : "-"}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'fte' ? (isDark ? 'bg-slate-800/40' : 'bg-slate-100') : ''}>
+                  <td className={`py-2 px-3 text-left font-black font-sans ${isDark ? "text-slate-400" : "text-slate-600"}`}>Dif. FTE</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 font-black ${
+                          m.hasRealizado && m.difFTE !== null
+                            ? (m.difFTE > 0 ? 'text-red-400' : 'text-[#00CE7C]')
+                            : 'text-slate-500'
+                        } ${isAccum ? 'bg-sky-500/10 border-l-2 border-sky-400/40' : isSelected ? 'bg-[#22c7ac]/10' : ''}`}
+                      >
+                        {m.hasRealizado && m.difFTE !== null ? (m.difFTE > 0 ? `+${m.difFTE}` : m.difFTE) : "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
 
                 {/* Linhas Financeiras (R$) */}
-                <tr className={`border-t ${isDark ? "border-slate-800" : "border-slate-200"} ${chartMetric === 'valor' ? (isDark ? 'bg-blue-950/30 font-bold' : 'bg-blue-50/70 font-semibold') : ''}`}>
-                  <td className="py-1 px-2 text-left font-bold text-blue-300 font-sans">Total PA (R$)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
-                      {m.valPa > 0 ? formatMoney(m.valPa) : "-"}
-                    </td>
-                  ))}
+                <tr className={`border-t ${isDark ? "border-slate-800" : "border-slate-200"} ${chartMetric === 'valor' ? (isDark ? 'bg-blue-950/40 font-bold' : 'bg-blue-50/80 font-bold') : ''}`}>
+                  <td className="py-2 px-3 text-left font-black text-blue-300 font-sans">Total PA (R$)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 text-xs md:text-sm ${
+                          isAccum
+                            ? 'font-black bg-sky-500/10 border-l-2 border-sky-400/40 text-blue-300'
+                            : isSelected
+                            ? `font-black ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`
+                            : ''
+                        }`}
+                      >
+                        {m.valPa > 0 ? formatMoney(m.valPa) : "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
-                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-indigo-950/30 font-bold' : 'bg-indigo-50/70 font-semibold') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-indigo-300 font-sans">Forecast (R$)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
-                      {m.valForecast > 0 ? formatMoney(m.valForecast) : "-"}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-indigo-950/40 font-bold' : 'bg-indigo-50/80 font-bold') : ''}>
+                  <td className="py-2 px-3 text-left font-black text-indigo-300 font-sans">Forecast (R$)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 text-xs md:text-sm ${
+                          isAccum
+                            ? 'font-black bg-sky-500/10 border-l-2 border-sky-400/40 text-indigo-300'
+                            : isSelected
+                            ? `font-black ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`
+                            : ''
+                        }`}
+                      >
+                        {m.valForecast > 0 ? formatMoney(m.valForecast) : "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
-                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-emerald-950/30 font-bold' : 'bg-emerald-50/70 font-semibold') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-emerald-300 font-sans">Total Real (R$)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] text-slate-300 ${m.competence === selectedCompetence ? (`font-bold ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`) : ''}`}>
-                      {m.valReal > 0 ? formatMoney(m.valReal) : "-"}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-emerald-950/40 font-bold' : 'bg-emerald-50/80 font-bold') : ''}>
+                  <td className="py-2 px-3 text-left font-black text-emerald-300 font-sans">Total Real (R$)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 text-xs md:text-sm ${
+                          isAccum
+                            ? 'font-black bg-sky-500/10 border-l-2 border-sky-400/40 text-emerald-300'
+                            : isSelected
+                            ? `font-black ${isDark ? 'text-white' : 'text-[#041A71]'} bg-[#22c7ac]/10`
+                            : ''
+                        }`}
+                      >
+                        {m.valReal > 0 ? formatMoney(m.valReal) : "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
-                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-slate-800/40 font-bold' : 'bg-slate-100/80 font-semibold') : ''}>
-                  <td className="py-1 px-2 text-left font-bold text-slate-400 font-sans">Dif. Valor (R$)</td>
-                  {evolutionChart.map((m) => (
-                    <td key={m.competence} className={`py-1 px-2 text-[10px] font-bold ${
-                      m.difValor !== null ? (m.difValor > 0 ? 'text-red-400' : 'text-[#00CE7C]') : 'text-slate-400'
-                    } ${m.competence === selectedCompetence ? 'bg-[#22c7ac]/5' : ''}`}>
-                      {m.difValor !== null ? (m.difValor > 0 ? `+${formatMoney(m.difValor)}` : formatMoney(m.difValor)) : "-"}
-                    </td>
-                  ))}
+                <tr className={chartMetric === 'valor' ? (isDark ? 'bg-slate-800/50 font-bold' : 'bg-slate-100 font-bold') : ''}>
+                  <td className={`py-2 px-3 text-left font-black font-sans ${isDark ? "text-slate-400" : "text-slate-600"}`}>Dif. Valor (R$)</td>
+                  {evolutionChart.map((m) => {
+                    const isAccum = m.isAccumulated || m.competence.includes("Acumulado");
+                    const isSelected = m.competence === selectedCompetence;
+                    return (
+                      <td
+                        key={m.competence}
+                        className={`py-2 px-3 text-xs md:text-sm font-black ${
+                          m.difValor !== null
+                            ? (m.difValor > 0 ? 'text-red-400' : 'text-[#00CE7C]')
+                            : 'text-slate-500'
+                        } ${isAccum ? 'bg-sky-500/10 border-l-2 border-sky-400/40' : isSelected ? 'bg-[#22c7ac]/10' : ''}`}
+                      >
+                        {m.difValor !== null ? (m.difValor > 0 ? `+${formatMoney(m.difValor)}` : formatMoney(m.difValor)) : "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
               </tbody>
             </table>

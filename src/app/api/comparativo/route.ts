@@ -611,12 +611,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const selFin = financialByComp.get(selectedCompetence) || { valPa: 0, valReal: 0 };
-    const totalPaValor = selFin.valPa;
-    const totalRealValor = selFin.valReal;
-    const difValor = totalRealValor - totalPaValor;
-    const pctDifValor = totalPaValor !== 0 ? (difValor / totalPaValor) * 100 : 0;
-
     const compSumsMap = new Map<string, { pa: number; forecast: number; realizado: number }>();
     allMonths.forEach(m => compSumsMap.set(m, { pa: 0, forecast: 0, realizado: 0 }));
 
@@ -638,13 +632,15 @@ export async function POST(req: Request) {
       compSumsMap.get(comp)!.realizado = Number(g.realizado) || 0;
     }
 
+    const selFin = financialByComp.get(selectedCompetence) || { valPa: 0, valReal: 0 };
     const selPa = compSumsMap.get(selectedCompetence)?.pa || 0;
     const selFc = compSumsMap.get(selectedCompetence)?.forecast || 0;
-    const totalForecastValor = selPa > 0 && totalPaValor > 0
-      ? Math.round(((selFc / selPa) * totalPaValor) * 100) / 100
-      : totalPaValor;
+    const totalForecastValor = selPa > 0 && selFin.valPa > 0
+      ? Math.round(((selFc / selPa) * selFin.valPa) * 100) / 100
+      : selFin.valPa;
 
-    let evolutionChart = allMonths.map(comp => {
+    // Full 12-month evolution array
+    const fullEvolutionChart = allMonths.map(comp => {
       const item = compSumsMap.get(comp)!;
       const finItem = financialByComp.get(comp) || { valPa: 0, valReal: 0 };
       const difFTE = item.realizado > 0 ? item.realizado - item.pa : null;
@@ -659,6 +655,7 @@ export async function POST(req: Request) {
 
       return {
         competence: comp,
+        isAccumulated: false,
         pa: Math.round(item.pa),
         forecast: Math.round(item.forecast),
         realizado: Math.round(item.realizado),
@@ -673,15 +670,60 @@ export async function POST(req: Request) {
       };
     });
 
-    // If 6 months requested, filter to window surrounding the selected competence
+    // Sum all months of the year for the Accumulated Column and Cards
+    let sumPaFte = 0;
+    let sumFcFte = 0;
+    let sumRealFte = 0;
+    let sumValPa = 0;
+    let sumValForecast = 0;
+    let sumValReal = 0;
+    let anyReal = false;
+
+    for (const m of fullEvolutionChart) {
+      sumPaFte += m.pa || 0;
+      sumFcFte += m.forecast || 0;
+      sumRealFte += m.realizado || 0;
+      if (m.hasRealizado) anyReal = true;
+      sumValPa += m.valPa || 0;
+      sumValForecast += m.valForecast || 0;
+      sumValReal += m.valReal || 0;
+    }
+
+    const accumDifFte = anyReal ? sumRealFte - sumPaFte : null;
+    const accumPctDifFte = anyReal && sumPaFte > 0 ? ((sumRealFte - sumPaFte) / sumPaFte) * 100 : null;
+    const accumDifVal = sumValReal > 0 ? sumValReal - sumValPa : null;
+    const accumPctDifVal = sumValReal > 0 && sumValPa > 0 ? ((sumValReal - sumValPa) / sumValPa) * 100 : null;
+
+    const accumulatedItem = {
+      competence: "Acumulado Ano",
+      isAccumulated: true,
+      pa: Math.round(sumPaFte),
+      forecast: Math.round(sumFcFte),
+      realizado: Math.round(sumRealFte),
+      difFTE: accumDifFte !== null ? Math.round(accumDifFte) : null,
+      pctDif: accumPctDifFte !== null ? Math.round(accumPctDifFte * 10) / 10 : null,
+      hasRealizado: anyReal,
+      valPa: Math.round(sumValPa * 100) / 100,
+      valForecast: Math.round(sumValForecast * 100) / 100,
+      valReal: Math.round(sumValReal * 100) / 100,
+      difValor: accumDifVal !== null ? Math.round(accumDifVal * 100) / 100 : null,
+      pctDifValor: accumPctDifVal !== null ? Math.round(accumPctDifVal * 10) / 10 : null
+    };
+
+    let evolutionChart: typeof fullEvolutionChart = [];
     if (historicalMonths === 6) {
       const selectedIdx = allMonths.indexOf(selectedCompetence);
       let startIdx = Math.max(0, selectedIdx - 5);
       if (startIdx + 6 > allMonths.length) {
         startIdx = Math.max(0, allMonths.length - 6);
       }
-      evolutionChart = evolutionChart.slice(startIdx, startIdx + 6);
+      evolutionChart = fullEvolutionChart.slice(startIdx, startIdx + 6);
+    } else {
+      evolutionChart = [...fullEvolutionChart];
     }
+
+    // Always append the Accumulated column at the end of the chart after the last month
+    evolutionChart.push(accumulatedItem);
 
     return NextResponse.json({
       selectedCompetence,
@@ -697,11 +739,24 @@ export async function POST(req: Request) {
         pctForecast: pctForecast !== null ? Math.round(pctForecast * 100) / 100 : null
       },
       financial: {
-        totalPaValor: Math.round(totalPaValor * 100) / 100,
-        totalForecastValor: Math.round(totalForecastValor * 100) / 100,
-        totalRealValor: Math.round(totalRealValor * 100) / 100,
-        difValor: Math.round(difValor * 100) / 100,
-        pctDifValor: Math.round(pctDifValor * 100) / 100
+        // Accumulated values for the year (as requested by user)
+        totalPaValor: Math.round(sumValPa * 100) / 100,
+        totalForecastValor: Math.round(sumValForecast * 100) / 100,
+        totalRealValor: Math.round(sumValReal * 100) / 100,
+        difValor: Math.round((sumValReal - sumValPa) * 100) / 100,
+        pctDifValor: sumValPa > 0 ? Math.round(((sumValReal - sumValPa) / sumValPa) * 1000) / 10 : 0,
+        // Accumulated FTE values
+        accumulatedPaFte: Math.round(sumPaFte),
+        accumulatedFcFte: Math.round(sumFcFte),
+        accumulatedRealFte: Math.round(sumRealFte),
+        accumulatedDifFte: Math.round(sumRealFte - sumPaFte),
+        accumulatedPctDifFte: sumPaFte > 0 ? Math.round(((sumRealFte - sumPaFte) / sumPaFte) * 1000) / 10 : 0,
+        // Month values preserved
+        monthPaValor: Math.round(selFin.valPa * 100) / 100,
+        monthForecastValor: Math.round(totalForecastValor * 100) / 100,
+        monthRealValor: Math.round(selFin.valReal * 100) / 100,
+        monthDifValor: Math.round((selFin.valReal - selFin.valPa) * 100) / 100,
+        monthPctDifValor: selFin.valPa > 0 ? Math.round(((selFin.valReal - selFin.valPa) / selFin.valPa) * 1000) / 10 : 0
       },
       topMaioresDesvios,
       topMenoresDesvios,
